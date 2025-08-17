@@ -52,7 +52,6 @@
         </div>
         <div>
           <label>Save to the doc file and the spreadsheet? (+10 sec)</label>
-          <!-- Required by your workflow. We always send "No" per your instruction. Hidden to users. -->
           <select id="saveToggle" name="Save to the doc file and the spreadsheet? (+10 sec)" style="opacity:.5">
             <option selected>No</option>
             <option>Yes</option>
@@ -74,7 +73,7 @@
     const btn = document.getElementById('submitBtn');
 
     async function callApi(payload){
-      const res = await fetch('https://gatecrasher-public.onrender.com/webhook/gatecrasher', {
+      const res = await fetch('https://crewdog.app.n8n.cloud/webhook/gatecrasher', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
