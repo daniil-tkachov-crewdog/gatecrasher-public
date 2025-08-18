@@ -16,8 +16,6 @@
         --accent: #3b82f6;
         --border: #1f2937;
         --input: #0f172a;
-        --success: #22c55e;
-        --danger: #ef4444;
       }
       [data-theme="light"] {
         --bg: #ffffff;
@@ -28,91 +26,61 @@
         --border: #e5e7eb;
         --input: #ffffff;
       }
-
-      /* Base */
       html, body { height: 100%; }
       body {
-        margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+        margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial;
         background: var(--bg); color: var(--text);
-        -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
-        -webkit-text-size-adjust: 100%;
+        -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%;
       }
       .container { max-width: 960px; margin: 0 auto; padding: 16px; }
-
-      /* Header */
       .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; }
-      .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: 0.2px; }
-      .logo { width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(135deg, var(--accent), #00c2ff); box-shadow: 0 4px 18px rgba(59,130,246,.35); }
-      .brand h1 { font-size: 18px; line-height: 1; margin: 0; }
-
-      /* Theme toggle */
-      .toggle {
-        display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--border); background: var(--card);
-        padding: 6px 10px; border-radius: 999px; cursor: pointer; user-select: none;
-      }
-      .toggle input { appearance: none; width: 36px; height: 20px; border-radius: 999px; position: relative; outline: none; background: var(--border); transition: background .2s ease; }
+      .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; }
+      .logo { width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(135deg, var(--accent), #00c2ff); }
+      .brand h1 { font-size: 18px; margin: 0; }
+      .toggle { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--border); background: var(--card);
+        padding: 6px 10px; border-radius: 999px; cursor: pointer; }
+      .toggle input { appearance: none; width: 36px; height: 20px; border-radius: 999px; background: var(--border); position: relative; }
       .toggle input:checked { background: var(--accent); }
       .toggle input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: left .2s ease; }
       .toggle input:checked::after { left: 18px; }
-
-      /* Card */
       .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
-      .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
       .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
       .stack { display: grid; gap: 10px; }
-
       label { font-size: 13px; color: var(--muted); }
-      select, textarea, input[type="text"], button { width: 100%; font: inherit; color: var(--text); }
-      select, input[type="text"] { background: var(--input); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
-      textarea { background: var(--input); border: 1px solid var(--border); border-radius: 12px; padding: 12px; min-height: 180px; resize: vertical; }
-
-      button.primary {
-        background: var(--accent); color: #fff; border: 0; border-radius: 12px; padding: 12px 14px; font-weight: 600; cursor: pointer; width: 100%;
-      }
-      button.primary:disabled { opacity: .6; cursor: not-allowed; }
-
-      .desc { font-size: 14px; color: var(--muted); line-height: 1.45; background: transparent; border-left: 3px solid var(--border); padding: 8px 0 8px 12px; }
-
+      select, textarea, button { width: 100%; font: inherit; color: var(--text); }
+      select { background: var(--input); border: 1px solid var(--border); border-radius: 10px; padding: 10px; }
+      textarea { background: var(--input); border: 1px solid var(--border); border-radius: 12px; padding: 12px; min-height: 180px; }
+      button.primary { background: var(--accent); color: #fff; border: 0; border-radius: 12px; padding: 12px; font-weight: 600; cursor: pointer; }
+      .desc { font-size: 14px; color: var(--muted); border-left: 3px solid var(--border); padding: 8px 0 8px 12px; }
       .result { margin-top: 16px; }
       .result .panel { background: var(--card); border: 1px dashed var(--border); border-radius: 12px; padding: 12px; overflow-x: auto; }
-
       .footer { margin: 20px 0 40px; font-size: 12px; color: var(--muted); text-align: center; }
-
-      /* Mobile & Safari tweaks */
-      @media (max-width: 840px) {
-        .row, .row-3 { grid-template-columns: 1fr; }
-        .topbar { flex-wrap: wrap; gap: 10px; }
-        .brand h1 { font-size: 16px; }
-      }
-      @supports (-webkit-touch-callout: none) {
-        /* iOS Safari form tap zoom prevent */
-        select, input, textarea { font-size: 16px; }
-      }
+      @media (max-width: 840px) { .row-3 { grid-template-columns: 1fr; } .topbar { flex-wrap: wrap; } }
+      @supports (-webkit-touch-callout: none) { select, textarea { font-size: 16px; } }
     </style>
   </head>
   <body>
     <div class="container">
-      <header class="topbar" role="banner">
-        <div class="brand" aria-label="App name">
-          <span class="logo" aria-hidden="true"></span>
+      <header class="topbar">
+        <div class="brand">
+          <span class="logo"></span>
           <h1>X-Ray Link</h1>
         </div>
-        <label class="toggle" title="Toggle theme">
-          <span aria-hidden="true">🌙</span>
-          <input id="themeToggle" type="checkbox" aria-label="Toggle dark / light theme">
-          <span aria-hidden="true">☀️</span>
+        <label class="toggle">
+          <span>🌙</span>
+          <input id="themeToggle" type="checkbox">
+          <span>☀️</span>
         </label>
       </header>
 
-      <main class="stack" role="main">
+      <main class="stack">
         <section class="card stack">
-          <p class="desc" id="tool-desc">
-            <strong>Crewdog AI research tool</strong> identifies the end employer based on a pasted job description and also finds LinkedIn profiles of potential candidates.
-            <br><em>Note:</em> The job title alone is not sufficient for this tool to function effectively.
+          <p class="desc">
+            <strong>Crewdog AI research tool</strong> identifies the end employer based on a pasted job description and also finds LinkedIn profiles of potential candidates.<br>
+            <em>Note:</em> The job title alone is not sufficient for this tool to function effectively.
           </p>
 
-          <!-- FORM: keep names/IDs EXACT for n8n mapping -->
-          <form id="gatecrasher-form" class="stack" method="post" action="/api/submit" novalidate>
+          <form id="gatecrasher-form" method="post" action="https://crewdog.app.n8n.cloud/webhook/gatecrasher" novalidate>
             <div class="row-3">
               <div class="stack">
                 <label for="region">Region to search (Candidates)</label>
@@ -124,7 +92,6 @@
                   <option value="Worldwide">Worldwide</option>
                 </select>
               </div>
-
               <div class="stack">
                 <label for="save-opt">Save to the doc file and the spreadsheet? (+10 sec)</label>
                 <select id="save-opt" name="Save to the doc file and the spreadsheet? (+10 sec)">
@@ -132,92 +99,60 @@
                   <option value="Yes">Yes (+10 sec)</option>
                 </select>
               </div>
-
               <div class="stack">
-                <label for="submitBtn" aria-hidden="true" style="visibility:hidden">&nbsp;</label>
+                <label for="submitBtn" style="visibility:hidden">&nbsp;</label>
                 <button id="submitBtn" class="primary" type="submit">Run Search</button>
               </div>
             </div>
-
             <div class="stack">
               <label for="JD">Job Description (paste below)</label>
               <textarea id="JD" name="JD" placeholder="Paste the full job description here…" required></textarea>
             </div>
           </form>
 
-          <div id="result" class="result" aria-live="polite"></div>
+          <div id="result" class="result"></div>
         </section>
-
         <p class="footer">Results are rendered directly from the n8n workflow response.</p>
       </main>
     </div>
 
     <script>
-      // === Theme: default dark, persist in localStorage ===
       (function() {
-        try {
-          var saved = localStorage.getItem("xrl-theme");
-          if (saved === "light") document.documentElement.setAttribute("data-theme", "light");
-          else document.documentElement.setAttribute("data-theme", "dark");
-        } catch(e) {}
+        var saved = localStorage.getItem("xrl-theme");
+        document.documentElement.setAttribute("data-theme", saved === "light" ? "light" : "dark");
         var toggle = document.getElementById("themeToggle");
         if (toggle) {
           toggle.checked = document.documentElement.getAttribute("data-theme") === "light";
           toggle.addEventListener("change", function() {
             var mode = toggle.checked ? "light" : "dark";
             document.documentElement.setAttribute("data-theme", mode);
-            try { localStorage.setItem("xrl-theme", mode); } catch(e) {}
+            localStorage.setItem("xrl-theme", mode);
           });
         }
       })();
-
-      // === FORM SUBMIT ===
-      // IMPORTANT: We DO NOT modify existing service calls. If your server attaches
-      // its own handler, it will still work. This is a minimal progressive enhancement
-      // using the same field names expected by n8n.
       (function() {
         var form = document.getElementById("gatecrasher-form");
         var result = document.getElementById("result");
         if (!form) return;
-
-        function render(html) {
-          result.innerHTML = '<div class="panel">' + html + '</div>';
-          result.scrollIntoView({behavior:'smooth', block:'start'});
-        }
-
         form.addEventListener("submit", async function(ev) {
-          // If an external handler is present, let it run instead
-          if (window.__XRL_EXTERNAL_SUBMIT__) return;
-
           ev.preventDefault();
           var btn = document.getElementById("submitBtn");
           if (btn) { btn.disabled = true; btn.textContent = "Working…"; }
           try {
             var fd = new FormData(form);
-            // Ensure saver value is always sent exactly as named
-            // (matches n8n expression: $("On form submission1").item.json["Save to the doc file and the spreadsheet? (+10 sec)"])
             if (!fd.has("Save to the doc file and the spreadsheet? (+10 sec)")) {
               fd.append("Save to the doc file and the spreadsheet? (+10 sec)", "No");
             }
-
-            const resp = await fetch(form.getAttribute("action") || "/api/submit", {
-              method: "POST",
-              body: fd
-            });
-
+            const resp = await fetch(form.getAttribute("action"), { method: "POST", body: fd });
             const text = await resp.text();
-            // The n8n workflow returns HTML; render as-is
-            render(text);
+            result.innerHTML = '<div class="panel">' + text + '</div>';
           } catch (err) {
-            render('<pre>' + (err && (err.stack || err.message) || String(err)) + '</pre>');
+            result.innerHTML = '<pre>' + (err.message || err) + '</pre>';
           } finally {
             if (btn) { btn.disabled = false; btn.textContent = "Run Search"; }
           }
         });
       })();
-
-      // === iOS Safari safe-area support for notch devices ===
-      document.documentElement.style.setProperty('--safe-top', (window.safeAreaInsets ? window.safeAreaInsets.top : 0) + 'px');
     </script>
   </body>
 </html>
