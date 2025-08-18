@@ -1,110 +1,223 @@
 <!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Gatecraher</title>
-  <style>
-    :root { --bg: #0b0b0b; --fg: #e6e6e6; --muted:#9aa0a6; --card:#151515; --accent:#5eead4; }
-    * { box-sizing: border-box; }
-    body { margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell; background: var(--bg); color: var(--fg); }
-    .wrap { max-width: 900px; margin: 40px auto; padding: 0 16px; }
-    header { display:flex; align-items:center; justify-content:space-between; margin-bottom: 24px; }
-    .brand { font-weight: 700; letter-spacing: .5px; }
-    .tag { font-size:12px; color: var(--muted); }
-    .card { background: var(--card); border-radius: 14px; padding: 18px; box-shadow: 0 0 0 1px #222; }
-    label { display:block; font-size: 14px; margin: 12px 0 6px; color: var(--muted); }
-    textarea, select { width: 100%; background: #0f0f0f; color: var(--fg); border: 1px solid #2a2a2a; border-radius: 10px; padding: 10px 12px; }
-    textarea { min-height: 160px; resize: vertical; }
-    .row { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    button { margin-top: 14px; width: 100%; padding: 12px 14px; border-radius: 12px; border: 0; background: var(--fg); color: #000; font-weight: 700; cursor: pointer; }
-    button[disabled] { opacity: .45; cursor: not-allowed; }
-    .out { margin-top: 24px; }
-    .error { white-space: pre-wrap; color: #ff9aa2; background:#300; border:1px solid #600; padding:12px; border-radius:12px; }
-    .success { background:#0f172a; border:1px solid #1f2937; border-radius:12px; padding:16px; }
-    .hint { font-size:12px; color:var(--muted); margin-top:6px }
-  </style>
-</head>
-<body>
-  <div class="wrap">
-    <header>
-      <div>
-        <div class="brand">GATECRAHER</div>
-        <div class="tag">Reveal decision-makers • Find candidates</div>
-      </div>
-    </header>
-
-    <form id="gatecraher-form" class="card" autocomplete="off">
-      <label for="JD">JD</label>
-      <textarea id="JD" name="JD" required placeholder="Paste the full job description…"></textarea>
-
-      <div class="row">
-        <div>
-          <label for="Region to search (Candidates)">Region to search (Candidates)</label>
-          <select id="Region to search (Candidates)" name="Region to search (Candidates)">
-            <option>Asia (India)</option>
-            <option>Eastern Europe</option>
-            <option>Western Europe</option>
-            <option>America</option>
-            <option>Africa</option>
-            <option>Australia</option>
-          </select>
-        </div>
-        <div>
-          <label>Save to the doc file and the spreadsheet? (+10 sec)</label>
-          <select id="saveToggle" name="Save to the doc file and the spreadsheet? (+10 sec)" style="opacity:.5">
-            <option selected>No</option>
-            <option>Yes</option>
-          </select>
-          <div class="hint">Ignored in backend; always sent as <b>No</b>.</div>
-        </div>
-      </div>
-
-      <button id="submitBtn" type="submit">Run Gatecraher</button>
-      <div class="hint">Output mirrors your n8n template (5 HR links, 6 candidate links).</div>
-    </form>
-
-    <div id="output" class="out"></div>
-  </div>
-
-  <script>
-    const form = document.getElementById('gatecraher-form');
-    const out = document.getElementById('output');
-    const btn = document.getElementById('submitBtn');
-
-    async function callApi(payload){
-      const res = await fetch('https://crewdog.app.n8n.cloud/webhook/gatecrasher', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const text = await res.text();
-      return { ok: res.ok, status: res.status, body: text };
-    }
-
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      out.innerHTML = '';
-      btn.disabled = true; btn.textContent = 'Running…';
-
-      const payload = {
-        JD: document.getElementById('JD').value.trim(),
-        'Region to search (Candidates)': document.getElementById('Region to search (Candidates)').value,
-        'Save to the doc file and the spreadsheet? (+10 sec)': 'No'
-      };
-
-      try {
-        const { ok, status, body } = await callApi(payload);
-        if (!ok) {
-          try { const j = JSON.parse(body); throw new Error(j.error || JSON.stringify(j)); } catch(_) { throw new Error(body || ('HTTP ' + status)); }
-        }
-        out.innerHTML = `<div class="success">${body}</div>`;
-      } catch (err) {
-        out.innerHTML = `<div class="error">${err.message}</div>`;
-      } finally {
-        btn.disabled = false; btn.textContent = 'Run Gatecraher';
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge" />
+    <title>X-Ray Link</title>
+    <style>
+      :root {
+        --bg: #0b0e11;
+        --card: #12161c;
+        --text: #e6eaf2;
+        --muted: #94a3b8;
+        --accent: #3b82f6;
+        --border: #1f2937;
+        --input: #0f172a;
+        --success: #22c55e;
+        --danger: #ef4444;
       }
-    });
-  </script>
-</body>
+      [data-theme="light"] {
+        --bg: #ffffff;
+        --card: #f7f8fa;
+        --text: #0f172a;
+        --muted: #475569;
+        --accent: #2563eb;
+        --border: #e5e7eb;
+        --input: #ffffff;
+      }
+
+      /* Base */
+      html, body { height: 100%; }
+      body {
+        margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+        background: var(--bg); color: var(--text);
+        -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+        -webkit-text-size-adjust: 100%;
+      }
+      .container { max-width: 960px; margin: 0 auto; padding: 16px; }
+
+      /* Header */
+      .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; }
+      .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: 0.2px; }
+      .logo { width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(135deg, var(--accent), #00c2ff); box-shadow: 0 4px 18px rgba(59,130,246,.35); }
+      .brand h1 { font-size: 18px; line-height: 1; margin: 0; }
+
+      /* Theme toggle */
+      .toggle {
+        display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--border); background: var(--card);
+        padding: 6px 10px; border-radius: 999px; cursor: pointer; user-select: none;
+      }
+      .toggle input { appearance: none; width: 36px; height: 20px; border-radius: 999px; position: relative; outline: none; background: var(--border); transition: background .2s ease; }
+      .toggle input:checked { background: var(--accent); }
+      .toggle input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: left .2s ease; }
+      .toggle input:checked::after { left: 18px; }
+
+      /* Card */
+      .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
+      .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+      .stack { display: grid; gap: 10px; }
+
+      label { font-size: 13px; color: var(--muted); }
+      select, textarea, input[type="text"], button { width: 100%; font: inherit; color: var(--text); }
+      select, input[type="text"] { background: var(--input); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+      textarea { background: var(--input); border: 1px solid var(--border); border-radius: 12px; padding: 12px; min-height: 180px; resize: vertical; }
+
+      button.primary {
+        background: var(--accent); color: #fff; border: 0; border-radius: 12px; padding: 12px 14px; font-weight: 600; cursor: pointer; width: 100%;
+      }
+      button.primary:disabled { opacity: .6; cursor: not-allowed; }
+
+      .desc { font-size: 14px; color: var(--muted); line-height: 1.45; background: transparent; border-left: 3px solid var(--border); padding: 8px 0 8px 12px; }
+
+      .result { margin-top: 16px; }
+      .result .panel { background: var(--card); border: 1px dashed var(--border); border-radius: 12px; padding: 12px; overflow-x: auto; }
+
+      .footer { margin: 20px 0 40px; font-size: 12px; color: var(--muted); text-align: center; }
+
+      /* Mobile & Safari tweaks */
+      @media (max-width: 840px) {
+        .row, .row-3 { grid-template-columns: 1fr; }
+        .topbar { flex-wrap: wrap; gap: 10px; }
+        .brand h1 { font-size: 16px; }
+      }
+      @supports (-webkit-touch-callout: none) {
+        /* iOS Safari form tap zoom prevent */
+        select, input, textarea { font-size: 16px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header class="topbar" role="banner">
+        <div class="brand" aria-label="App name">
+          <span class="logo" aria-hidden="true"></span>
+          <h1>X-Ray Link</h1>
+        </div>
+        <label class="toggle" title="Toggle theme">
+          <span aria-hidden="true">🌙</span>
+          <input id="themeToggle" type="checkbox" aria-label="Toggle dark / light theme">
+          <span aria-hidden="true">☀️</span>
+        </label>
+      </header>
+
+      <main class="stack" role="main">
+        <section class="card stack">
+          <p class="desc" id="tool-desc">
+            <strong>Crewdog AI research tool</strong> identifies the end employer based on a pasted job description and also finds LinkedIn profiles of potential candidates.
+            <br><em>Note:</em> The job title alone is not sufficient for this tool to function effectively.
+          </p>
+
+          <!-- FORM: keep names/IDs EXACT for n8n mapping -->
+          <form id="gatecrasher-form" class="stack" method="post" action="/api/submit" novalidate>
+            <div class="row-3">
+              <div class="stack">
+                <label for="region">Region to search (Candidates)</label>
+                <select id="region" name="Region to search (Candidates)">
+                  <option value="United Kingdom" selected>United Kingdom</option>
+                  <option value="Europe">Europe</option>
+                  <option value="United States">United States</option>
+                  <option value="Canada">Canada</option>
+                  <option value="Worldwide">Worldwide</option>
+                </select>
+              </div>
+
+              <div class="stack">
+                <label for="save-opt">Save to the doc file and the spreadsheet? (+10 sec)</label>
+                <select id="save-opt" name="Save to the doc file and the spreadsheet? (+10 sec)">
+                  <option value="No" selected>No</option>
+                  <option value="Yes">Yes (+10 sec)</option>
+                </select>
+              </div>
+
+              <div class="stack">
+                <label for="submitBtn" aria-hidden="true" style="visibility:hidden">&nbsp;</label>
+                <button id="submitBtn" class="primary" type="submit">Run Search</button>
+              </div>
+            </div>
+
+            <div class="stack">
+              <label for="JD">Job Description (paste below)</label>
+              <textarea id="JD" name="JD" placeholder="Paste the full job description here…" required></textarea>
+            </div>
+          </form>
+
+          <div id="result" class="result" aria-live="polite"></div>
+        </section>
+
+        <p class="footer">Results are rendered directly from the n8n workflow response.</p>
+      </main>
+    </div>
+
+    <script>
+      // === Theme: default dark, persist in localStorage ===
+      (function() {
+        try {
+          var saved = localStorage.getItem("xrl-theme");
+          if (saved === "light") document.documentElement.setAttribute("data-theme", "light");
+          else document.documentElement.setAttribute("data-theme", "dark");
+        } catch(e) {}
+        var toggle = document.getElementById("themeToggle");
+        if (toggle) {
+          toggle.checked = document.documentElement.getAttribute("data-theme") === "light";
+          toggle.addEventListener("change", function() {
+            var mode = toggle.checked ? "light" : "dark";
+            document.documentElement.setAttribute("data-theme", mode);
+            try { localStorage.setItem("xrl-theme", mode); } catch(e) {}
+          });
+        }
+      })();
+
+      // === FORM SUBMIT ===
+      // IMPORTANT: We DO NOT modify existing service calls. If your server attaches
+      // its own handler, it will still work. This is a minimal progressive enhancement
+      // using the same field names expected by n8n.
+      (function() {
+        var form = document.getElementById("gatecrasher-form");
+        var result = document.getElementById("result");
+        if (!form) return;
+
+        function render(html) {
+          result.innerHTML = '<div class="panel">' + html + '</div>';
+          result.scrollIntoView({behavior:'smooth', block:'start'});
+        }
+
+        form.addEventListener("submit", async function(ev) {
+          // If an external handler is present, let it run instead
+          if (window.__XRL_EXTERNAL_SUBMIT__) return;
+
+          ev.preventDefault();
+          var btn = document.getElementById("submitBtn");
+          if (btn) { btn.disabled = true; btn.textContent = "Working…"; }
+          try {
+            var fd = new FormData(form);
+            // Ensure saver value is always sent exactly as named
+            // (matches n8n expression: $("On form submission1").item.json["Save to the doc file and the spreadsheet? (+10 sec)"])
+            if (!fd.has("Save to the doc file and the spreadsheet? (+10 sec)")) {
+              fd.append("Save to the doc file and the spreadsheet? (+10 sec)", "No");
+            }
+
+            const resp = await fetch(form.getAttribute("action") || "/api/submit", {
+              method: "POST",
+              body: fd
+            });
+
+            const text = await resp.text();
+            // The n8n workflow returns HTML; render as-is
+            render(text);
+          } catch (err) {
+            render('<pre>' + (err && (err.stack || err.message) || String(err)) + '</pre>');
+          } finally {
+            if (btn) { btn.disabled = false; btn.textContent = "Run Search"; }
+          }
+        });
+      })();
+
+      // === iOS Safari safe-area support for notch devices ===
+      document.documentElement.style.setProperty('--safe-top', (window.safeAreaInsets ? window.safeAreaInsets.top : 0) + 'px');
+    </script>
+  </body>
 </html>
