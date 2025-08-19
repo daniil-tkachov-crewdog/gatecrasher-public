@@ -43,6 +43,7 @@
       .toggle input:checked { background: var(--accent); }
       .toggle input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: left .2s ease; }
       .toggle input:checked::after { left: 18px; }
+
       .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
       .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
       .stack { display: grid; gap: 10px; }
@@ -53,10 +54,22 @@
       button.primary { background: var(--accent); color: #fff; border: 0; border-radius: 12px; padding: 12px; font-weight: 600; cursor: pointer; }
       .desc { font-size: 14px; color: var(--muted); border-left: 3px solid var(--border); padding: 8px 0 8px 12px; }
       .result { margin-top: 16px; }
-      .result .panel { background: var(--card); border: 1px dashed var(--border); border-radius: 12px; padding: 12px; overflow-x: auto; }
       .footer { margin: 20px 0 40px; font-size: 12px; color: var(--muted); text-align: center; }
       @media (max-width: 840px) { .row-3 { grid-template-columns: 1fr; } .topbar { flex-wrap: wrap; } }
       @supports (-webkit-touch-callout: none) { select, textarea { font-size: 16px; } }
+
+      /* ====== RESULT TEMPLATE STYLES ====== */
+      .gc-header { margin-bottom: 20px; }
+      .gc-title { font-size: 22px; font-weight: 700; margin: 0 0 6px; }
+      .gc-sub a { color: var(--text); text-decoration: none; border-bottom: 1px solid var(--border); }
+      .gc-section { margin: 26px 0 18px; }
+      .gc-section h2 { font-size: 18px; margin: 0 0 12px; }
+      .gc-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(260px,1fr)); gap: 12px; }
+      .gc-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+      .gc-card .gc-item-title { font-weight: 600; margin: 0 0 8px; }
+      .gc-card a { word-break: break-all; color: var(--accent); }
+      .gc-error { color: #b91c1c; background: #fee2e2; border: 1px solid #fecaca; padding: 10px; border-radius: 8px; }
+      .panel { background: var(--card); border: 1px dashed var(--border); border-radius: 12px; padding: 12px; overflow-x: auto; }
     </style>
   </head>
   <body>
@@ -130,10 +143,12 @@
           });
         }
       })();
+
       (function() {
         var form = document.getElementById("gatecrasher-form");
         var result = document.getElementById("result");
         if (!form) return;
+
         form.addEventListener("submit", async function(ev) {
           ev.preventDefault();
           var btn = document.getElementById("submitBtn");
@@ -143,15 +158,94 @@
             if (!fd.has("Save to the doc file and the spreadsheet? (+10 sec)")) {
               fd.append("Save to the doc file and the spreadsheet? (+10 sec)", "No");
             }
+
+            /* === API CALL UNCHANGED (method, URL, body) === */
             const resp = await fetch(form.getAttribute("action"), { method: "POST", body: fd });
-            const text = await resp.text();
-            result.innerHTML = '<div class="panel">' + text + '</div>';
+
+            // Try JSON first (expected). Fallback to raw text if needed.
+            let data, asText = null;
+            const ct = (resp.headers.get("content-type") || "").toLowerCase();
+            if (ct.includes("application/json")) {
+              data = await resp.json();
+            } else {
+              asText = await resp.text();
+              try { data = JSON.parse(asText); } catch (_) {}
+            }
+
+            if (data && typeof data === "object") {
+              result.innerHTML = renderTemplate(data);
+            } else {
+              // Fallback: show server text response inside a panel (legacy)
+              result.innerHTML = '<div class="panel">' + (asText || "No response") + '</div>';
+            }
           } catch (err) {
-            result.innerHTML = '<pre>' + (err.message || err) + '</pre>';
+            result.innerHTML = '<div class="gc-error"><strong>Error:</strong> ' + (err && err.message ? err.message : err) + '</div>';
           } finally {
             if (btn) { btn.disabled = false; btn.textContent = "Run Search"; }
           }
         });
+
+        function esc(v) {
+          if (v == null) return "";
+          return String(v)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+        }
+
+        function link(url, text) {
+          const u = (url || "").toString().trim();
+          if (!u) return "";
+          return '<a href="' + esc(u) + '" target="_blank" rel="noopener noreferrer">' + esc(text || u) + '</a>';
+        }
+
+        function section(title, cardsHtml) {
+          return '<section class="gc-section"><h2>' + esc(title) + '</h2>' + cardsHtml + '</section>';
+        }
+
+        function renderCards(list) {
+          if (!Array.isArray(list) || list.length === 0) {
+            return '<div class="gc-error">No results found.</div>';
+          }
+          const cards = list.map(function(item) {
+            const t = item && item.title ? item.title : "—";
+            const lnk = item && item.link ? link(item.link, "LinkedIn") : "";
+            return (
+              '<div class="gc-card">' +
+                '<p class="gc-item-title">' + esc(t) + '</p>' +
+                '<p>' + lnk + '</p>' +
+              '</div>'
+            );
+          }).join("");
+          return '<div class="gc-grid">' + cards + '</div>';
+        }
+
+        function renderTemplate(d) {
+          const errors = [];
+          if (!d || typeof d !== "object") errors.push("Empty or invalid JSON.");
+          if (!d.company) errors.push("Missing: company");
+          if (!d.company_website) errors.push("Missing: company_website");
+          if (!Array.isArray(d.hr)) errors.push("Missing or invalid: hr[]");
+          if (!Array.isArray(d.potential_leads)) errors.push("Missing or invalid: potential_leads[]");
+
+          let out = "";
+          if (errors.length) {
+            out += '<div class="gc-error"><strong>Render error:</strong> ' + errors.join(" · ") + '</div>';
+          }
+
+          out += (
+            '<div class="gc-header">' +
+              '<h1 class="gc-title">' + esc(d.company || "") + '</h1>' +
+              '<div class="gc-sub">Website: ' + link(d.company_website, "Link") + '</div>' +
+            '</div>'
+          );
+
+          out += section("Company HR people", renderCards(d.hr));
+          out += section("Potential leads", renderCards(d.potential_leads));
+          return out;
+        }
       })();
     </script>
   </body>
