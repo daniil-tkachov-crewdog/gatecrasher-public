@@ -23,230 +23,138 @@
         --text: #0f172a;
         --muted: #475569;
         --accent: #2563eb;
-        --border: #e5e7eb;
-        --input: #ffffff;
+        --border: #e2e8f0;
+        --input: #f1f5f9;
       }
-      html, body { height: 100%; }
-      body {
-        margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial;
-        background: var(--bg); color: var(--text);
-        -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%;
+      html, body {
+        height: 100%;
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
       }
-      .container { max-width: 960px; margin: 0 auto; padding: 16px; }
-      .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; }
-      .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; }
-      .logo { width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(135deg, var(--accent), #00c2ff); }
-      .brand h1 { font-size: 18px; margin: 0; }
-      .toggle { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--border); background: var(--card);
-        padding: 6px 10px; border-radius: 999px; cursor: pointer; }
-      .toggle input { appearance: none; width: 36px; height: 20px; border-radius: 999px; background: var(--border); position: relative; }
-      .toggle input:checked { background: var(--accent); }
-      .toggle input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: left .2s ease; }
-      .toggle input:checked::after { left: 18px; }
+      .page {
+        min-height: 100vh;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+      }
+      header, footer {
+        padding: 16px;
+      }
+      .container {
+        max-width: 880px;
+        margin: 0 auto;
+        padding: 16px;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 20px;
+      }
+      .title {
+        font-size: 22px;
+        font-weight: 700;
+        margin: 0 0 12px 0;
+      }
+      .label {
+        display: block;
+        font-size: 14px;
+        color: var(--muted);
+        margin-bottom: 8px;
+      }
+      textarea {
+        width: 100%;
+        min-height: 220px;
+        resize: vertical;
+        background: var(--input);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 12px 14px;
+        font-size: 14px;
+        outline: none;
+      }
+      textarea:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(59,130,246,0.25);
+      }
 
-      .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
-      .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-      .stack { display: grid; gap: 10px; }
-      label { font-size: 13px; color: var(--muted); }
-      select, textarea, button { width: 100%; font: inherit; color: var(--text); }
-      select { background: var(--input); border: 1px solid var(--border); border-radius: 10px; padding: 10px; }
-      textarea { background: var(--input); border: 1px solid var(--border); border-radius: 12px; padding: 12px; min-height: 180px; }
-      button.primary { background: var(--accent); color: #fff; border: 0; border-radius: 12px; padding: 12px; font-weight: 600; cursor: pointer; }
-      .desc { font-size: 14px; color: var(--muted); border-left: 3px solid var(--border); padding: 8px 0 8px 12px; }
-      .result { margin-top: 16px; }
-      .footer { margin: 20px 0 40px; font-size: 12px; color: var(--muted); text-align: center; }
-      @media (max-width: 840px) { .row-3 { grid-template-columns: 1fr; } .topbar { flex-wrap: wrap; } }
-      @supports (-webkit-touch-callout: none) { select, textarea { font-size: 16px; } }
+      /* Centering zone for the button ONLY (keeps overall spacing elsewhere intact) */
+      .actions-wrap {
+        min-height: 220px; /* preserves overall spacing feel even after field removal */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 240px;                 /* fixed width as requested */
+        max-width: 90vw;              /* mobile safety */
+        height: 46px;
+        padding: 0 18px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: var(--accent);
+        color: white;
+        font-weight: 700;
+        font-size: 15px;
+        text-decoration: none;
+        cursor: pointer;
+        transition: transform .06s ease-in-out, filter .15s ease-in-out;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .btn:hover { filter: brightness(1.05); }
+      .btn:active { transform: translateY(1px); }
+      .help {
+        margin-top: 10px;
+        font-size: 12px;
+        color: var(--muted);
+        text-align: center;
+      }
 
-      /* ====== RESULT TEMPLATE STYLES ====== */
-      .gc-header { margin-bottom: 20px; }
-      .gc-title { font-size: 22px; font-weight: 700; margin: 0 0 6px; }
-      .gc-sub a { color: var(--text); text-decoration: none; border-bottom: 1px solid var(--border); }
-      .gc-section { margin: 26px 0 18px; }
-      .gc-section h2 { font-size: 18px; margin: 0 0 12px; }
-      .gc-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(260px,1fr)); gap: 12px; }
-      .gc-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
-      .gc-card .gc-item-title { font-weight: 600; margin: 0 0 8px; }
-      .gc-card a { word-break: break-all; color: var(--accent); }
-      .gc-error { color: #b91c1c; background: #fee2e2; border: 1px solid #fecaca; padding: 10px; border-radius: 8px; }
-      .panel { background: var(--card); border: 1px dashed var(--border); border-radius: 12px; padding: 12px; overflow-x: auto; }
+      @media (max-width: 640px) {
+        .card { padding: 16px; }
+        .actions-wrap { min-height: 180px; }
+        textarea { min-height: 200px; }
+      }
     </style>
   </head>
   <body>
-    <div class="container">
-      <header class="topbar">
-        <div class="brand">
-          <span class="logo"></span>
-          <h1>X-Ray Link</h1>
+    <div class="page">
+      <header>
+        <div class="container">
+          <div class="title">X-Ray Link</div>
         </div>
-        <label class="toggle">
-          <span>🌙</span>
-          <input id="themeToggle" type="checkbox">
-          <span>☀️</span>
-        </label>
       </header>
 
-      <main class="stack">
-        <section class="card stack">
-          <p class="desc">
-            <strong>Xraylink:</strong> See the Real Employer From job ad to decision-maker in one click.<br>
-            <em>Note:</em> The job title alone is not sufficient for this tool to function effectively.
-          </p>
+      <main>
+        <div class="container">
+          <div class="card">
+            <form action="https://crewdog.app.n8n.cloud/webhook/gatecrasher" method="post" autocomplete="on">
+              <!-- Only required field kept -->
+              <label for="JD" class="label">Job Description</label>
+              <textarea id="JD" name="JD" placeholder="Paste the full job description here..."></textarea>
 
-          <form id="gatecrasher-form" method="post" action="https://crewdog.app.n8n.cloud/webhook/gatecrasher" novalidate>
-            <div class="row-3">
-              <div class="stack">
-                <label for="region">Region to search (Candidates)</label>
-                <select id="region" name="Region to search (Candidates)">
-                  <option value="United Kingdom" selected>United Kingdom</option>
-                  <option value="Europe">Europe</option>
-                  <option value="United States">United States</option>
-                  <option value="Canada">Canada</option>
-                  <option value="Worldwide">Worldwide</option>
-                </select>
+              <!-- Centered button block -->
+              <div class="actions-wrap">
+                <button type="submit" class="btn">Run Search</button>
               </div>
-              <div class="stack">
-                <label for="save-opt">Save to the doc file and the spreadsheet? (+10 sec)</label>
-                <select id="save-opt" name="Save to the doc file and the spreadsheet? (+10 sec)">
-                  <option value="No" selected>No</option>
-                  <option value="Yes">Yes (+10 sec)</option>
-                </select>
-              </div>
-              <div class="stack">
-                <label for="submitBtn" style="visibility:hidden">&nbsp;</label>
-                <button id="submitBtn" class="primary" type="submit">Run Search</button>
-              </div>
-            </div>
-            <div class="stack">
-              <label for="JD">Job Description (paste below)</label>
-              <textarea id="JD" name="JD" placeholder="Paste the full job description here…" required></textarea>
-            </div>
-          </form>
 
-          <div id="result" class="result"></div>
-        </section>
-        <p class="footer">Results are rendered directly from the n8n workflow response.</p>
+              <div class="help">Posts to your existing n8n webhook. No other fields included.</div>
+            </form>
+          </div>
+        </div>
       </main>
+
+      <footer>
+        <div class="container">
+          <div class="help">© 2025</div>
+        </div>
+      </footer>
     </div>
-
-    <script>
-      (function() {
-        var saved = localStorage.getItem("xrl-theme");
-        document.documentElement.setAttribute("data-theme", saved === "light" ? "light" : "dark");
-        var toggle = document.getElementById("themeToggle");
-        if (toggle) {
-          toggle.checked = document.documentElement.getAttribute("data-theme") === "light";
-          toggle.addEventListener("change", function() {
-            var mode = toggle.checked ? "light" : "dark";
-            document.documentElement.setAttribute("data-theme", mode);
-            localStorage.setItem("xrl-theme", mode);
-          });
-        }
-      })();
-
-      (function() {
-        var form = document.getElementById("gatecrasher-form");
-        var result = document.getElementById("result");
-        if (!form) return;
-
-        form.addEventListener("submit", async function(ev) {
-          ev.preventDefault();
-          var btn = document.getElementById("submitBtn");
-          if (btn) { btn.disabled = true; btn.textContent = "Working…"; }
-          try {
-            var fd = new FormData(form);
-            if (!fd.has("Save to the doc file and the spreadsheet? (+10 sec)")) {
-              fd.append("Save to the doc file and the spreadsheet? (+10 sec)", "No");
-            }
-
-            /* === API CALL UNCHANGED (method, URL, body) === */
-            const resp = await fetch(form.getAttribute("action"), { method: "POST", body: fd });
-
-            // Try JSON first (expected). Fallback to raw text if needed.
-            let data, asText = null;
-            const ct = (resp.headers.get("content-type") || "").toLowerCase();
-            if (ct.includes("application/json")) {
-              data = await resp.json();
-            } else {
-              asText = await resp.text();
-              try { data = JSON.parse(asText); } catch (_) {}
-            }
-
-            if (data && typeof data === "object") {
-              result.innerHTML = renderTemplate(data);
-            } else {
-              // Fallback: show server text response inside a panel (legacy)
-              result.innerHTML = '<div class="panel">' + (asText || "No response") + '</div>';
-            }
-          } catch (err) {
-            result.innerHTML = '<div class="gc-error"><strong>Error:</strong> ' + (err && err.message ? err.message : err) + '</div>';
-          } finally {
-            if (btn) { btn.disabled = false; btn.textContent = "Run Search"; }
-          }
-        });
-
-        function esc(v) {
-          if (v == null) return "";
-          return String(v)
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#39;");
-        }
-
-        function link(url, text) {
-          const u = (url || "").toString().trim();
-          if (!u) return "";
-          return '<a href="' + esc(u) + '" target="_blank" rel="noopener noreferrer">' + esc(text || u) + '</a>';
-        }
-
-        function section(title, cardsHtml) {
-          return '<section class="gc-section"><h2>' + esc(title) + '</h2>' + cardsHtml + '</section>';
-        }
-
-        function renderCards(list) {
-          if (!Array.isArray(list) || list.length === 0) {
-            return '<div class="gc-error">No results found.</div>';
-          }
-          const cards = list.map(function(item) {
-            const t = item && item.title ? item.title : "—";
-            const lnk = item && item.link ? link(item.link, "LinkedIn") : "";
-            return (
-              '<div class="gc-card">' +
-                '<p class="gc-item-title">' + esc(t) + '</p>' +
-                '<p>' + lnk + '</p>' +
-              '</div>'
-            );
-          }).join("");
-          return '<div class="gc-grid">' + cards + '</div>';
-        }
-
-        function renderTemplate(d) {
-          const errors = [];
-          if (!d || typeof d !== "object") errors.push("Empty or invalid JSON.");
-          if (!d.company) errors.push("Missing: company");
-          if (!d.company_website) errors.push("Missing: company_website");
-          if (!Array.isArray(d.hr)) errors.push("Missing or invalid: hr[]");
-          if (!Array.isArray(d.potential_leads)) errors.push("Missing or invalid: potential_leads[]");
-
-          let out = "";
-          if (errors.length) {
-            out += '<div class="gc-error"><strong>Render error:</strong> ' + errors.join(" · ") + '</div>';
-          }
-
-          out += (
-            '<div class="gc-header">' +
-              '<h1 class="gc-title">' + esc(d.company || "") + '</h1>' +
-              '<div class="gc-sub">Website: ' + link(d.company_website, "Link") + '</div>' +
-            '</div>'
-          );
-
-          out += section("Company HR people", renderCards(d.hr));
-          out += section("Potential leads", renderCards(d.potential_leads));
-          return out;
-        }
-      })();
-    </script>
   </body>
 </html>
