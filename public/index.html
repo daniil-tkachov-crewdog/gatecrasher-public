@@ -95,8 +95,20 @@
 
           <form id="gatecrasher-form" method="post" action="https://crewdog.app.n8n.cloud/webhook/gatecrasher" novalidate>
             <div class="row-3">
-              <!-- Left spacer to keep layout and center the button -->
-              <div aria-hidden="true"></div>
+              <!-- Left: Paperclip (CV upload) -->
+              <div class="stack">
+                <label for="cvBtn" style="visibility:hidden">&nbsp;</label>
+                <div class="stack" style="align-items:start;">
+                  <button id="cvBtn" type="button" aria-label="Attach CV" title="Attach CV"
+                    style="width:auto; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px; cursor: pointer;">
+                    📎
+                  </button>
+                  <input id="cvInput" name="cv_file" type="file" accept=".pdf,.doc,.docx" style="display:none">
+                  <div id="cvNote" style="font-size:12px;color:var(--muted);">pdf, doc, docx • ≤10MB</div>
+                  <div id="cvFileName" style="font-size:12px;color:var(--muted);"></div>
+                  <div id="cvError" class="gc-error" style="display:none;"></div>
+                </div>
+              </div>
 
               <!-- Centered Run Search button -->
               <div class="stack">
@@ -139,13 +151,84 @@
         var result = document.getElementById("result");
         if (!form) return;
 
+        /* === CV elements & routing === */
+        var cvBtn = document.getElementById("cvBtn");
+        var cvInput = document.getElementById("cvInput");
+        var cvFileName = document.getElementById("cvFileName");
+        var cvError = document.getElementById("cvError");
+        var jd = document.getElementById("JD");
+
+        var DEFAULT_ACTION = form.getAttribute("action");
+        var CV_ACTION = "https://crewdog.app.n8n.cloud/webhook/072d575d-4adc-4f6c-8720-6b25b1040344";
+
+        if (cvBtn && cvInput) {
+          cvBtn.addEventListener("click", function() {
+            if (cvBtn.disabled) return;
+            cvInput.click();
+          });
+
+          cvInput.addEventListener("change", function() {
+            // reset error
+            if (cvError) { cvError.style.display = "none"; cvError.textContent = ""; }
+
+            var f = cvInput.files && cvInput.files[0];
+            if (!f) {
+              // No file -> enable JD mode
+              if (jd) jd.disabled = false;
+              if (cvFileName) cvFileName.textContent = "";
+              form.setAttribute("action", DEFAULT_ACTION);
+              return;
+            }
+
+            var sizeOK = f.size <= 10 * 1024 * 1024; // 10MB
+            var nameOK = /\.(pdf|docx?)$/i.test(f.name);
+            var typeOK = ["application/pdf","application/msword","application/vnd.openxmlformats-officedocument.wordprocessingml.document"].indexOf(f.type) !== -1;
+
+            if (!(sizeOK && (nameOK || typeOK))) {
+              if (cvError) {
+                cvError.textContent = !sizeOK ? "File too large. Max 10MB." : "Invalid file type. Use PDF, DOC, or DOCX.";
+                cvError.style.display = "block";
+              }
+              cvInput.value = "";
+              if (cvFileName) cvFileName.textContent = "";
+              if (jd) jd.disabled = false;
+              form.setAttribute("action", DEFAULT_ACTION);
+              return;
+            }
+
+            // Valid CV selected -> CV mode
+            if (cvFileName) cvFileName.textContent = "Selected: " + f.name;
+            if (jd) { jd.value = ""; jd.disabled = true; }
+            form.setAttribute("action", CV_ACTION);
+          });
+
+          if (jd) {
+            jd.addEventListener("input", function() {
+              var hasText = (jd.value || "").trim().length > 0;
+              if (hasText) {
+                // JD mode -> clear/disable CV
+                cvInput.value = "";
+                if (cvFileName) cvFileName.textContent = "";
+                if (cvError) { cvError.style.display = "none"; cvError.textContent = ""; }
+                form.setAttribute("action", DEFAULT_ACTION);
+              }
+              // Toggle paperclip availability
+              cvBtn.disabled = hasText;
+            });
+          }
+        }
+
         form.addEventListener("submit", async function(ev) {
           ev.preventDefault();
           var btn = document.getElementById("submitBtn");
           if (btn) { btn.disabled = true; btn.textContent = "Working…"; }
           try {
+            var isCvMode = !!(cvInput && cvInput.files && cvInput.files.length > 0);
+
             var fd = new FormData(form);
-            if (!fd.has("Save to the doc file and the spreadsheet? (+10 sec)")) {
+
+            // Only add this field for JD mode (not for CV mode where only file must be sent)
+            if (!isCvMode && !fd.has("Save to the doc file and the spreadsheet? (+10 sec)")) {
               fd.append("Save to the doc file and the spreadsheet? (+10 sec)", "No");
             }
 
