@@ -95,27 +95,17 @@
 
           <form id="gatecrasher-form" method="post" action="https://crewdog.app.n8n.cloud/webhook/gatecrasher" novalidate>
             <div class="row-3">
-              <div class="stack">
-                <label for="region">Region to search (Candidates)</label>
-                <select id="region" name="Region to search (Candidates)">
-                  <option value="United Kingdom" selected>United Kingdom</option>
-                  <option value="Europe">Europe</option>
-                  <option value="United States">United States</option>
-                  <option value="Canada">Canada</option>
-                  <option value="Worldwide">Worldwide</option>
-                </select>
-              </div>
-              <div class="stack">
-                <label for="save-opt">Save to the doc file and the spreadsheet? (+10 sec)</label>
-                <select id="save-opt" name="Save to the doc file and the spreadsheet? (+10 sec)">
-                  <option value="No" selected>No</option>
-                  <option value="Yes">Yes (+10 sec)</option>
-                </select>
-              </div>
+              <!-- Left spacer to keep layout and center the button -->
+              <div aria-hidden="true"></div>
+
+              <!-- Centered Run Search button -->
               <div class="stack">
                 <label for="submitBtn" style="visibility:hidden">&nbsp;</label>
                 <button id="submitBtn" class="primary" type="submit">Run Search</button>
               </div>
+
+              <!-- Right spacer -->
+              <div aria-hidden="true"></div>
             </div>
             <div class="stack">
               <label for="JD">Job Description (paste below)</label>
