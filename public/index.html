@@ -48,15 +48,20 @@
       .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
       .stack { display: grid; gap: 10px; }
       label { font-size: 13px; color: var(--muted); }
-      select, textarea, button { width: 100%; font: inherit; color: var(--text); }
-      select { background: var(--input); border: 1px solid var(--border); border-radius: 10px; padding: 10px; }
-      textarea { background: var(--input); border: 1px solid var(--border); border-radius: 12px; padding: 12px; min-height: 180px; }
-      button.primary { background: var(--accent); color: #fff; border: 0; border-radius: 12px; padding: 12px; font-weight: 600; cursor: pointer; }
+      select, textarea, button, input[type="checkbox"] { font: inherit; color: var(--text); }
+      select { background: var(--input); border: 1px solid var(--border); border-radius: 10px; padding: 10px; width: 100%; }
+      textarea { background: var(--input); border: 1px solid var(--border); border-radius: 12px; padding: 12px; min-height: 180px; width: 100%; }
+      button.primary { background: var(--accent); color: #fff; border: 0; border-radius: 12px; padding: 12px; font-weight: 600; cursor: pointer; width: 100%; }
       .desc { font-size: 14px; color: var(--muted); border-left: 3px solid var(--border); padding: 8px 0 8px 12px; }
       .result { margin-top: 16px; }
       .footer { margin: 20px 0 40px; font-size: 12px; color: var(--muted); text-align: center; }
       @media (max-width: 840px) { .row-3 { grid-template-columns: 1fr; } .topbar { flex-wrap: wrap; } }
       @supports (-webkit-touch-callout: none) { select, textarea { font-size: 16px; } }
+
+      /* inline checkbox styling */
+      .inline-check { display:flex; align-items:center; gap:8px; }
+      .inline-check label { margin:0; }
+      .muted { color: var(--muted); font-size: 13px; }
 
       /* ====== RESULT TEMPLATE STYLES ====== */
       .gc-header { margin-bottom: 20px; }
@@ -95,18 +100,12 @@
 
           <form id="gatecrasher-form" method="post" action="https://crewdog.app.n8n.cloud/webhook/gatecrasher" novalidate>
             <div class="row-3">
-              <!-- Left: Paperclip (CV upload) -->
+              <!-- Left: JH checkbox (replaces paperclip) -->
               <div class="stack">
-                <label for="cvBtn" style="visibility:hidden">&nbsp;</label>
-                <div class="stack" style="align-items:start;">
-                  <button id="cvBtn" type="button" aria-label="Attach CV" title="Attach CV"
-                    style="width:auto; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px; cursor: pointer;">
-                    📎
-                  </button>
-                  <input id="cvInput" name="cv_file" type="file" accept=".pdf,.doc,.docx" style="display:none">
-                  <div id="cvNote" style="font-size:12px;color:var(--muted);">pdf, doc, docx • ≤10MB</div>
-                  <div id="cvFileName" style="font-size:12px;color:var(--muted);"></div>
-                  <div id="cvError" class="gc-error" style="display:none;"></div>
+                <label for="JH_tickbox" class="muted">Options</label>
+                <div class="inline-check">
+                  <input id="JH_tickbox" name="JH_tickbox" type="checkbox" value="yes" />
+                  <label for="JH_tickbox">Include potential leads search?</label>
                 </div>
               </div>
 
@@ -123,6 +122,9 @@
               <label for="JD">Job Description (paste below)</label>
               <textarea id="JD" name="JD" placeholder="Paste the full job description here…" required></textarea>
             </div>
+
+            <!-- Ensure "no" is sent when unchecked (overridden to "yes" in JS if checked) -->
+            <input type="hidden" name="JH_tickbox" value="no">
           </form>
 
           <div id="result" class="result"></div>
@@ -151,7 +153,7 @@
         var result = document.getElementById("result");
         if (!form) return;
 
-        /* === CV elements & routing === */
+        /* === CV elements & routing (deprecated) — kept for reference, fully disabled ===
         var cvBtn = document.getElementById("cvBtn");
         var cvInput = document.getElementById("cvInput");
         var cvFileName = document.getElementById("cvFileName");
@@ -159,76 +161,32 @@
         var jd = document.getElementById("JD");
 
         var DEFAULT_ACTION = form.getAttribute("action");
-        var CV_ACTION = "https://crewdog.app.n8n.cloud/webhook/072d575d-4adc-4f6c-8720-6b25b1040344";
+        var CV_ACTION = "https://crewdog.app.n8n.cloud/webhook/072d575d-4adc-4f6c-8720-6b25b1040344"; // inactive
 
         if (cvBtn && cvInput) {
-          cvBtn.addEventListener("click", function() {
-            if (cvBtn.disabled) return;
-            cvInput.click();
-          });
-
-          cvInput.addEventListener("change", function() {
-            // reset error
-            if (cvError) { cvError.style.display = "none"; cvError.textContent = ""; }
-
-            var f = cvInput.files && cvInput.files[0];
-            if (!f) {
-              // No file -> enable JD mode
-              if (jd) jd.disabled = false;
-              if (cvFileName) cvFileName.textContent = "";
-              form.setAttribute("action", DEFAULT_ACTION);
-              return;
-            }
-
-            var sizeOK = f.size <= 10 * 1024 * 1024; // 10MB
-            var nameOK = /\.(pdf|docx?)$/i.test(f.name);
-            var typeOK = ["application/pdf","application/msword","application/vnd.openxmlformats-officedocument.wordprocessingml.document"].indexOf(f.type) !== -1;
-
-            if (!(sizeOK && (nameOK || typeOK))) {
-              if (cvError) {
-                cvError.textContent = !sizeOK ? "File too large. Max 10MB." : "Invalid file type. Use PDF, DOC, or DOCX.";
-                cvError.style.display = "block";
-              }
-              cvInput.value = "";
-              if (cvFileName) cvFileName.textContent = "";
-              if (jd) jd.disabled = false;
-              form.setAttribute("action", DEFAULT_ACTION);
-              return;
-            }
-
-            // Valid CV selected -> CV mode
-            if (cvFileName) cvFileName.textContent = "Selected: " + f.name;
-            if (jd) { jd.value = ""; jd.disabled = true; }
-            form.setAttribute("action", CV_ACTION);
-          });
-
-          if (jd) {
-            jd.addEventListener("input", function() {
-              var hasText = (jd.value || "").trim().length > 0;
-              if (hasText) {
-                // JD mode -> clear/disable CV
-                cvInput.value = "";
-                if (cvFileName) cvFileName.textContent = "";
-                if (cvError) { cvError.style.display = "none"; cvError.textContent = ""; }
-                form.setAttribute("action", DEFAULT_ACTION);
-              }
-              // Toggle paperclip availability
-              cvBtn.disabled = hasText;
-            });
-          }
+          cvBtn.addEventListener("click", function() { if (cvBtn.disabled) return; cvInput.click(); });
+          cvInput.addEventListener("change", function() { ... });
+          if (jd) { jd.addEventListener("input", function() { ... }); }
         }
+        === END deprecated CV block === */
+
+        // Active elements
+        var jd = document.getElementById("JD");
+        var jhBox = document.getElementById("JH_tickbox");
 
         form.addEventListener("submit", async function(ev) {
           ev.preventDefault();
           var btn = document.getElementById("submitBtn");
           if (btn) { btn.disabled = true; btn.textContent = "Working…"; }
           try {
-            var isCvMode = !!(cvInput && cvInput.files && cvInput.files.length > 0);
-
             var fd = new FormData(form);
 
-            // Only add this field for JD mode (not for CV mode where only file must be sent)
-            if (!isCvMode && !fd.has("Save to the doc file and the spreadsheet? (+10 sec)")) {
+            // Normalize JH_tickbox to explicit "yes"/"no"
+            var wantsLeads = !!(jhBox && jhBox.checked);
+            fd.set("JH_tickbox", wantsLeads ? "yes" : "no");
+
+            // Preserve prior behavior for saver flag (JD mode only exists now)
+            if (!fd.has("Save to the doc file and the spreadsheet? (+10 sec)")) {
               fd.append("Save to the doc file and the spreadsheet? (+10 sec)", "No");
             }
 
@@ -248,7 +206,6 @@
             if (data && typeof data === "object") {
               result.innerHTML = renderTemplate(data);
             } else {
-              // Fallback: show server text response inside a panel (legacy)
               result.innerHTML = '<div class="panel">' + (asText || "No response") + '</div>';
             }
           } catch (err) {
