@@ -71,7 +71,6 @@
       @media (max-width: 840px) { .row-3 { grid-template-columns: 1fr; } .topbar { flex-wrap: wrap; } }
       @supports (-webkit-touch-callout: none) { select, textarea { font-size: 16px; } }
 
-      /* inline checkbox styling */
       .inline-check { display:flex; align-items:center; gap:8px; }
       .inline-check label { margin:0; }
       .muted { color: var(--muted); font-size: 13px; }
@@ -110,39 +109,40 @@
               Paste a job description, optionally include potential leads, then run.
             </p>
 
-          <form id="gatecrasher-form" method="post" action="https://crewdog.app.n8n.cloud/webhook/gatecrasher" novalidate>
-            <div class="row-3">
-              <!-- Left: JH checkbox (replaces paperclip) -->
-              <div class="stack">
-                <label for="JH_tickbox" class="muted">Options</label>
-                <div class="inline-check">
-                  <input id="JH_tickbox" name="JH_tickbox" type="checkbox" value="yes" />
-                  <label for="JH_tickbox">Include potential leads search?</label>
+            <form id="gatecrasher-form" method="post" action="https://crewdog.app.n8n.cloud/webhook/gatecrasher" novalidate>
+              <div class="row-3">
+                <!-- Left: JH checkbox -->
+                <div class="stack">
+                  <label for="JH_tickbox" class="muted">Options</label>
+                  <div class="inline-check">
+                    <input id="JH_tickbox" name="JH_tickbox" type="checkbox" value="yes" />
+                    <label for="JH_tickbox">Include potential leads search?</label>
+                  </div>
                 </div>
+
+                <!-- Middle spacer -->
+                <div aria-hidden="true"></div>
+
+                <!-- Submit -->
+                <div class="stack">
+                  <label for="submitBtn" style="visibility:hidden">&nbsp;</label>
+                  <button id="submitBtn" class="primary" type="submit">Run Search</button>
+                </div>
+
+                <!-- Right spacer -->
+                <div aria-hidden="true"></div>
               </div>
-
-              <!-- Middle spacer -->
-              <div aria-hidden="true"></div>
-
-              <!-- Submit -->
               <div class="stack">
-                <label for="submitBtn" style="visibility:hidden">&nbsp;</label>
-                <button id="submitBtn" class="primary" type="submit">Run Search</button>
+                <label for="JD">Job Description (paste below)</label>
+                <textarea id="JD" name="JD" placeholder="Paste the full job description here…" required></textarea>
               </div>
 
-              <!-- Right spacer -->
-              <div aria-hidden="true"></div>
-            </div>
-            <div class="stack">
-              <label for="JD">Job Description (paste below)</label>
-              <textarea id="JD" name="JD" placeholder="Paste the full job description here…" required></textarea>
-            </div>
+              <!-- Ensure "no" is sent when unchecked (overridden to "yes" in JS if checked) -->
+              <input type="hidden" name="JH_tickbox" value="no">
+            </form>
 
-            <!-- Ensure "no" is sent when unchecked (overridden to "yes" in JS if checked) -->
-            <input type="hidden" name="JH_tickbox" value="no">
-          </form>
-
-          <div id="result" class="result"></div>
+            <div id="result" class="result"></div>
+          </div>
         </section>
 
         <section class="card">
@@ -157,7 +157,7 @@
     </div>
 
     <script>
-      // Theme toggle (unchanged)
+      // Theme toggle (kept)
       (function() {
         var toggle = document.getElementById("themeToggle");
         var root = document.documentElement;
@@ -180,26 +180,9 @@
         var result = document.getElementById("result");
         if (!form) return;
 
-        /* === CV elements & routing (deprecated) — kept for reference, fully disabled ===
-        var cvBtn = document.getElementById("cvBtn");
-        var cvInput = document.getElementById("cvInput");
-        var cvFileName = document.getElementById("cvFileName");
-        var cvError = document.getElementById("cvError");
-        var jd = document.getElementById("JD");
-
-        var DEFAULT_ACTION = form.getAttribute("action");
-        var CV_ACTION = "https://crewdog.app.n8n.cloud/webhook/072d575d-4adc-4f6c-8720-6b25b1040344"; // inactive
-
-        if (cvBtn && cvInput) {
-          cvBtn.addEventListener("click", function() { if (cvBtn.disabled) return; cvInput.click(); });
-          cvInput.addEventListener("change", function() { /* ... */ });
-          if (jd) { jd.addEventListener("input", function() { /* ... */ }); }
-        }
-        === END deprecated CV block === */
-
-        // Active elements
         var jd = document.getElementById("JD");
         var jhBox = document.getElementById("JH_tickbox");
+        var lastWantsLeads = false; // tracks the latest request intent
 
         form.addEventListener("submit", async function(ev) {
           ev.preventDefault();
@@ -209,18 +192,18 @@
             var fd = new FormData(form);
 
             // Normalize JH value to explicit "yes"/"no"
-            var wantsLeads = !!(jhBox && jhBox.checked);
-            fd.set("JH_tickbox", wantsLeads ? "yes" : "no");
+            lastWantsLeads = !!(jhBox && jhBox.checked);
+            fd.set("JH_tickbox", lastWantsLeads ? "yes" : "no");
 
-            // Preserve prior behavior for saver flag (JD mode only exists now)
+            // Preserve prior behavior for saver flag
             if (!fd.has("Save to the doc file and the spreadsheet? (+10 sec)")) {
               fd.append("Save to the doc file and the spreadsheet? (+10 sec)", "No");
             }
 
-            /* === API CALL UNCHANGED (method, URL, body) === */
+            /* === API CALL UNCHANGED === */
             const resp = await fetch(form.getAttribute("action"), { method: "POST", body: fd });
 
-            // Try JSON first (expected). Fallback to raw text if needed.
+            // Expect JSON; fallback to text
             let data, asText = null;
             const ct = (resp.headers.get("content-type") || "").toLowerCase();
             if (ct.includes("application/json")) {
@@ -232,7 +215,7 @@
 
             if (data && typeof data === "object") {
               const payload = Array.isArray(data) ? data[0] : data;   // supports both outputs
-              result.innerHTML = renderTemplate(payload);
+              result.innerHTML = renderTemplate(payload, { wantsLeads: lastWantsLeads });
             } else {
               result.innerHTML = '<div class="panel">' + (asText || "No response") + '</div>';
             }
@@ -272,14 +255,17 @@
           return '<div class="gc-grid">' + cards + '</div>';
         }
 
-        function renderTemplate(d) {
+        function renderTemplate(d, opts) {
+          opts = opts || {};
+          const wantsLeads = !!opts.wantsLeads;
+
           const errors = [];
           if (!d || typeof d !== "object") errors.push("Empty or invalid JSON.");
           if (!d || !d.company) errors.push("Missing: company");
           if (!d || !d.company_website) errors.push("Missing: company_website");
           if (!d || !Array.isArray(d.hr)) errors.push("Missing or invalid: hr[]");
 
-          // Leads optional: hide when absent or empty
+          // Leads are OPTIONAL. Do NOT error if missing/empty, regardless of request.
           const hasLeads = Array.isArray(d.potential_leads) && d.potential_leads.length > 0;
 
           let out = "";
@@ -295,9 +281,12 @@
           );
 
           out += section("Company HR people", renderCards(d.hr || []));
+
+          // Show Leads section ONLY if leads actually exist (hide when not requested or empty)
           if (hasLeads) {
             out += section("Potential leads", renderCards(d.potential_leads));
           }
+
           return out;
         }
       })();
