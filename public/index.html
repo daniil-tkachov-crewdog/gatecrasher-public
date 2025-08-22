@@ -24,8 +24,10 @@
         --muted: #475569;
         --accent: #2563eb;
         --border: #e5e7eb;
-        --input: #ffffff;
+        --input: #f1f5f9;
       }
+
+      * { box-sizing: border-box; }
       html, body { height: 100%; }
       body {
         margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial;
@@ -41,18 +43,29 @@
         padding: 6px 10px; border-radius: 999px; cursor: pointer; }
       .toggle input { appearance: none; width: 36px; height: 20px; border-radius: 999px; background: var(--border); position: relative; }
       .toggle input:checked { background: var(--accent); }
-      .toggle input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: left .2s ease; }
-      .toggle input:checked::after { left: 18px; }
+      .toggle input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 999px; background: #fff; transition: transform .2s ease; }
+      .toggle input:checked::after { transform: translateX(16px); }
+      .subtitle { font-size: 13px; color: var(--muted); margin: 0; }
 
-      .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
-      .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-      .stack { display: grid; gap: 10px; }
-      label { font-size: 13px; color: var(--muted); }
-      select, textarea, button, input[type="checkbox"] { font: inherit; color: var(--text); }
-      select { background: var(--input); border: 1px solid var(--border); border-radius: 10px; padding: 10px; width: 100%; }
-      textarea { background: var(--input); border: 1px solid var(--border); border-radius: 12px; padding: 12px; min-height: 180px; width: 100%; }
-      button.primary { background: var(--accent); color: #fff; border: 0; border-radius: 12px; padding: 12px; font-weight: 600; cursor: pointer; width: 100%; }
-      .desc { font-size: 14px; color: var(--muted); border-left: 3px solid var(--border); padding: 8px 0 8px 12px; }
+      .grid { display: grid; gap: 16px; }
+      .row-3 { grid-template-columns: 1fr 1fr 1fr; display: grid; gap: 16px; }
+      .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+      .stack { display: grid; gap: 8px; }
+      label { font-size: 14px; color: var(--muted); }
+      input[type="text"], textarea, select {
+        width: 100%; background: var(--input); color: var(--text); border: 1px solid var(--border);
+        padding: 10px 12px; border-radius: 10px; outline: none;
+      }
+      textarea { min-height: 180px; resize: vertical; }
+      .btn-row { display: flex; gap: 10px; }
+      button, .button {
+        display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        background: var(--card); border: 1px solid var(--border); color: var(--text);
+        padding: 10px 14px; border-radius: 10px; cursor: pointer;
+      }
+      button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+      button:disabled { opacity: .7; cursor: not-allowed; }
+
       .result { margin-top: 16px; }
       .footer { margin: 20px 0 40px; font-size: 12px; color: var(--muted); text-align: center; }
       @media (max-width: 840px) { .row-3 { grid-template-columns: 1fr; } .topbar { flex-wrap: wrap; } }
@@ -84,19 +97,18 @@
           <span class="logo"></span>
           <h1>X-Ray Link</h1>
         </div>
-        <label class="toggle">
-          <span>🌙</span>
-          <input id="themeToggle" type="checkbox">
-          <span>☀️</span>
+        <label class="toggle" title="Toggle theme">
+          <span class="subtitle">Theme</span>
+          <input id="themeToggle" type="checkbox" aria-label="Toggle theme" />
         </label>
       </header>
 
-      <main class="stack">
-        <section class="card stack">
-          <p class="desc">
-            <strong>Xraylink:</strong> See the Real Employer From job ad to decision-maker in one click.<br>
-            <em>Note:</em> The job title alone is not sufficient for this tool to function effectively.
-          </p>
+      <main class="grid">
+        <section class="card">
+          <div class="stack">
+            <p class="subtitle" style="margin:0">
+              Paste a job description, optionally include potential leads, then run.
+            </p>
 
           <form id="gatecrasher-form" method="post" action="https://crewdog.app.n8n.cloud/webhook/gatecrasher" novalidate>
             <div class="row-3">
@@ -109,7 +121,10 @@
                 </div>
               </div>
 
-              <!-- Centered Run Search button -->
+              <!-- Middle spacer -->
+              <div aria-hidden="true"></div>
+
+              <!-- Submit -->
               <div class="stack">
                 <label for="submitBtn" style="visibility:hidden">&nbsp;</label>
                 <button id="submitBtn" class="primary" type="submit">Run Search</button>
@@ -129,20 +144,32 @@
 
           <div id="result" class="result"></div>
         </section>
-        <p class="footer">Results are rendered directly from the n8n workflow response.</p>
+
+        <section class="card">
+          <h2 style="margin:0 0 8px">What this tool does</h2>
+          <p class="subtitle" style="line-height:1.5">
+            Reveals the likely end employer behind an agency job ad, shows HR decision-makers, and optionally finds potential candidates/leads.
+          </p>
+        </section>
       </main>
+
+      <footer class="footer">© X-Ray Link</footer>
     </div>
 
     <script>
+      // Theme toggle (unchanged)
       (function() {
-        var saved = localStorage.getItem("xrl-theme");
-        document.documentElement.setAttribute("data-theme", saved === "light" ? "light" : "dark");
         var toggle = document.getElementById("themeToggle");
+        var root = document.documentElement;
+        var saved = localStorage.getItem("xrl-theme");
+        if (saved) {
+          root.setAttribute("data-theme", saved);
+          toggle.checked = saved === "light";
+        }
         if (toggle) {
-          toggle.checked = document.documentElement.getAttribute("data-theme") === "light";
           toggle.addEventListener("change", function() {
             var mode = toggle.checked ? "light" : "dark";
-            document.documentElement.setAttribute("data-theme", mode);
+            root.setAttribute("data-theme", mode);
             localStorage.setItem("xrl-theme", mode);
           });
         }
@@ -165,8 +192,8 @@
 
         if (cvBtn && cvInput) {
           cvBtn.addEventListener("click", function() { if (cvBtn.disabled) return; cvInput.click(); });
-          cvInput.addEventListener("change", function() { ... });
-          if (jd) { jd.addEventListener("input", function() { ... }); }
+          cvInput.addEventListener("change", function() { /* ... */ });
+          if (jd) { jd.addEventListener("input", function() { /* ... */ }); }
         }
         === END deprecated CV block === */
 
@@ -181,7 +208,7 @@
           try {
             var fd = new FormData(form);
 
-            // Normalize JH_tickbox to explicit "yes"/"no"
+            // Normalize JH value to explicit "yes"/"no"
             var wantsLeads = !!(jhBox && jhBox.checked);
             fd.set("JH_tickbox", wantsLeads ? "yes" : "no");
 
@@ -204,42 +231,35 @@
             }
 
             if (data && typeof data === "object") {
-              result.innerHTML = renderTemplate(data);
+              const payload = Array.isArray(data) ? data[0] : data;   // supports both outputs
+              result.innerHTML = renderTemplate(payload);
             } else {
               result.innerHTML = '<div class="panel">' + (asText || "No response") + '</div>';
             }
           } catch (err) {
-            result.innerHTML = '<div class="gc-error"><strong>Error:</strong> ' + (err && err.message ? err.message : err) + '</div>';
+            result.innerHTML = '<div class="gc-error"><strong>Error:</strong> ' + (err && err.message ? err.message : String(err)) + '</div>';
           } finally {
             if (btn) { btn.disabled = false; btn.textContent = "Run Search"; }
           }
         });
 
-        function esc(v) {
-          if (v == null) return "";
-          return String(v)
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#39;");
+        // ====== RENDERING ======
+        function esc(s) {
+          return String(s == null ? "" : s)
+            .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+            .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
         }
-
-        function link(url, text) {
-          const u = (url || "").toString().trim();
-          if (!u) return "";
-          return '<a href="' + esc(u) + '" target="_blank" rel="noopener noreferrer">' + esc(text || u) + '</a>';
+        function link(href, text) {
+          if (!href) return "";
+          return '<a href="'+esc(href)+'" target="_blank" rel="noopener noreferrer">'+esc(text||href)+'</a>';
         }
-
-        function section(title, cardsHtml) {
-          return '<section class="gc-section"><h2>' + esc(title) + '</h2>' + cardsHtml + '</section>';
+        function section(title, inner) {
+          if (!inner) return "";
+          return '<div class="gc-section"><h2>'+esc(title)+'</h2>'+inner+'</div>';
         }
-
-        function renderCards(list) {
-          if (!Array.isArray(list) || list.length === 0) {
-            return '<div class="gc-error">No results found.</div>';
-          }
-          const cards = list.map(function(item) {
+        function renderCards(arr) {
+          if (!Array.isArray(arr) || arr.length === 0) return "";
+          const cards = arr.map(function(item) {
             const t = item && item.title ? item.title : "—";
             const lnk = item && item.link ? link(item.link, "LinkedIn") : "";
             return (
@@ -255,10 +275,12 @@
         function renderTemplate(d) {
           const errors = [];
           if (!d || typeof d !== "object") errors.push("Empty or invalid JSON.");
-          if (!d.company) errors.push("Missing: company");
-          if (!d.company_website) errors.push("Missing: company_website");
-          if (!Array.isArray(d.hr)) errors.push("Missing or invalid: hr[]");
-          if (!Array.isArray(d.potential_leads)) errors.push("Missing or invalid: potential_leads[]");
+          if (!d || !d.company) errors.push("Missing: company");
+          if (!d || !d.company_website) errors.push("Missing: company_website");
+          if (!d || !Array.isArray(d.hr)) errors.push("Missing or invalid: hr[]");
+
+          // Leads optional: hide when absent or empty
+          const hasLeads = Array.isArray(d.potential_leads) && d.potential_leads.length > 0;
 
           let out = "";
           if (errors.length) {
@@ -272,8 +294,10 @@
             '</div>'
           );
 
-          out += section("Company HR people", renderCards(d.hr));
-          out += section("Potential leads", renderCards(d.potential_leads));
+          out += section("Company HR people", renderCards(d.hr || []));
+          if (hasLeads) {
+            out += section("Potential leads", renderCards(d.potential_leads));
+          }
           return out;
         }
       })();
