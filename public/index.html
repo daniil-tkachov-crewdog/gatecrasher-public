@@ -78,7 +78,7 @@
       /* Output styles */
       .gc-header { margin-bottom: 12px; }
       .gc-title { margin: 0; font-size: 24px; font-weight: 700; }
-      .gc-sub { margin-top: 6px; font-size: 14px; color: var(--muted); }
+      .gc-sub { margin-top: 6px; font-size: 14px; color: var(--muted); white-space: pre-wrap; }
       .gc-section { margin-top: 18px; }
       .gc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
       .gc-card { border: 1px solid var(--border); border-radius: 10px; padding: 12px; background: var(--card); }
@@ -254,7 +254,7 @@
             '<div class="gc-header">' +
               '<h1 class="gc-title">' + esc(d.company || "") + '</h1>' +
               '<div class="gc-sub">Website: ' + link(d.company_website, "Link") + '</div>' +
-              ((d.sniff_out_clues && String(d.sniff_out_clues).trim()) ? ('<div class="gc-sub">Why this company? ' + linkifyText(d.sniff_out_clues) + '</div>') : '') +
+              ((d.sniff_out_clues && String(d.sniff_out_clues).trim()) ? ('<div class="gc-sub">Why this company? ' + linkifyText(String(d.sniff_out_clues)) + '</div>') : '') +
             '</div>'
           );
 
