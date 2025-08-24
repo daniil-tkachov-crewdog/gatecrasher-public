@@ -1,1 +1,213 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge" />
+    <title>X-Ray Link — Home</title>
+    <style>
+      :root {
+        --bg: #0b0e11;
+        --card: #12161c;
+        --text: #e6eaf2;
+        --muted: #94a3b8;
+        --accent: #3b82f6;
+        --border: #1f2937;
+        --input: #0f172a;
+      }
+      [data-theme="light"] {
+        --bg: #ffffff;
+        --card: #f7f8fa;
+        --text: #0f172a;
+        --muted: #475569;
+        --accent: #2563eb;
+        --border: #e5e7eb;
+        --input: #f1f5f9;
+      }
+
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial;
+        background: var(--bg); color: var(--text);
+        -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%;
+      }
+      .container { max-width: 960px; margin: 0 auto; padding: 16px; }
+      .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; }
+      .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; }
+      .logo { width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(135deg, var(--accent), #00c2ff); }
+      .brand h1 { font-size: 18px; margin: 0; }
+      .right-actions { display: flex; align-items: center; gap: 10px; }
+      .toggle { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--border); background: var(--card);
+        padding: 6px 10px; border-radius: 999px; cursor: pointer; }
+      .toggle input { appearance: none; width: 36px; height: 20px; border-radius: 999px; background: var(--border); position: relative; }
+      .toggle input:checked { background: var(--accent); }
+      .toggle input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 999px; background: #fff; transition: transform .2s ease; }
+      .toggle input:checked::after { transform: translateX(16px); }
+      .subtitle { font-size: 13px; color: var(--muted); margin: 0; }
+      .button {
+        display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        background: var(--card); border: 1px solid var(--border); color: var(--text);
+        padding: 10px 14px; border-radius: 10px; cursor: pointer; text-decoration: none;
+      }
+      .button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+      .hero { padding: 32px 0; display: grid; gap: 14px; }
+      .hero h2 { font-size: 28px; line-height: 1.2; margin: 0; }
+      .hero p { font-size: 15px; color: var(--muted); margin: 0; }
+      .cta-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+
+      .grid { display: grid; gap: 16px; }
+      .row-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+      .row-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+      .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+      .card h3 { margin: 0 0 8px; font-size: 18px; }
+      .card p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
+
+      .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+      .stat { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; text-align: center; }
+      .stat .num { font-size: 24px; font-weight: 800; margin: 0 0 6px; }
+      .stat .cap { font-size: 12px; color: var(--muted); }
+
+      .footer { margin: 26px 0 40px; font-size: 12px; color: var(--muted); text-align: center; }
+
+      @media (max-width: 840px) {
+        .row-3, .row-2, .stats { grid-template-columns: 1fr; }
+        .hero h2 { font-size: 24px; }
+      }
+      @supports (-webkit-touch-callout: none) { .button, input, textarea, select { font-size: 16px; } }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header class="topbar">
+        <div class="brand">
+          <span class="logo"></span>
+          <h1>X-Ray Link</h1>
+        </div>
+        <div class="right-actions">
+          <label class="toggle" title="Toggle theme">
+            <span class="subtitle">Theme</span>
+            <input id="themeToggle" type="checkbox" aria-label="Toggle theme" />
+          </label>
+          <a href="./login.html" class="button">Login</a>
+        </div>
+      </header>
+
+      <main class="grid">
+        <!-- HERO -->
+        <section class="hero card">
+          <h2>Reveal the real employer behind agency job ads.</h2>
+          <p>Paste a job description → X‑Ray Link guesses the end employer, pulls HR decision‑makers, and can even surface matching candidate profiles.</p>
+          <div class="cta-row">
+            <a class="button primary" href="./index.webhook.html">Try it now</a>
+            <a class="button" href="./login.html">Login to continue</a>
+          </div>
+        </section>
+
+        <!-- WHAT IT IS / HOW IT HELPS -->
+        <section class="row-3">
+          <div class="card">
+            <h3>What is X‑Ray Link?</h3>
+            <p>It’s a focused search assistant that “sniffs out” the likely end employer hidden behind recruiter posts, using structured prompts and web signals.</p>
+          </div>
+          <div class="card">
+            <h3>Why job hunters use it</h3>
+            <p>Skip the middleman. Go straight to the employer’s site, team pages, and HR contacts so you can apply directly or tailor your outreach.</p>
+          </div>
+          <div class="card">
+            <h3>What you get</h3>
+            <p>• Company name & website<br>• Short “why this company?” rationale<br>• HR/People team profiles<br>• Optional: potential candidate leads</p>
+          </div>
+        </section>
+
+        <!-- STATS (demo counters) -->
+        <section class="card">
+          <h3 style="margin:0 0 10px">Live snapshot (demo)</h3>
+          <div class="stats">
+            <div class="stat">
+              <p class="num" data-count="87">0</p>
+              <p class="cap">End‑employer matches this week</p>
+            </div>
+            <div class="stat">
+              <p class="num" data-count="364">0</p>
+              <p class="cap">HR profiles surfaced</p>
+            </div>
+            <div class="stat">
+              <p class="num" data-count="72">0</p>
+              <p class="cap">Direct‑apply opportunities found</p>
+            </div>
+          </div>
+          <p class="subtitle" style="margin-top:10px">Numbers shown for demo purposes; your results vary per search.</p>
+        </section>
+
+        <!-- HOW IT WORKS (simple steps) -->
+        <section class="row-2">
+          <div class="card">
+            <h3>1) Paste a JD</h3>
+            <p>Use job title + responsibilities as you find them in the recruiter post. No formatting required.</p>
+          </div>
+          <div class="card">
+            <h3>2) We trace the employer</h3>
+            <p>We correlate phrases, roles, and locations to suggest a likely end employer and their HR contacts.</p>
+          </div>
+        </section>
+
+        <section class="card">
+          <div style="display:flex; gap:10px; flex-wrap:wrap">
+            <a class="button primary" href="./index.webhook.html">Start a search</a>
+            <a class="button" href="./login.html">Login</a>
+          </div>
+        </section>
+      </main>
+
+      <footer class="footer">© X-Ray Link</footer>
+    </div>
+
+    <script>
+      // Theme toggle (same behavior as Run page)
+      (function() {
+        var toggle = document.getElementById("themeToggle");
+        var root = document.documentElement;
+        var saved = localStorage.getItem("xrl-theme");
+        if (saved) {
+          root.setAttribute("data-theme", saved);
+          toggle.checked = saved === "light";
+        }
+        if (toggle) {
+          toggle.addEventListener("change", function() {
+            var mode = toggle.checked ? "light" : "dark";
+            root.setAttribute("data-theme", mode);
+            localStorage.setItem("xrl-theme", mode);
+          });
+        }
+      })();
+
+      // Simple count-up animation for demo stats (mobile friendly, no libs)
+      (function() {
+        var nums = document.querySelectorAll(".num[data-count]");
+        if (!nums.length) return;
+        var run = function(el) {
+          var target = parseInt(el.getAttribute("data-count"), 10) || 0;
+          var cur = 0, steps = 30, t = 600/steps;
+          var inc = Math.max(1, Math.round(target/steps));
+          var timer = setInterval(function(){
+            cur += inc;
+            if (cur >= target) { cur = target; clearInterval(timer); }
+            el.textContent = cur.toString();
+          }, t);
+        };
+        // Trigger when visible
+        var obs = new IntersectionObserver(function(entries){
+          entries.forEach(function(e){
+            if (e.isIntersecting) { run(e.target); obs.unobserve(e.target); }
+          });
+        }, { threshold: 0.3 });
+        nums.forEach(function(n){ obs.observe(n); });
+      })();
+    </script>
+  </body>
+</html>
 
