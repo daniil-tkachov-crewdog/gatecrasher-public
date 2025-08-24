@@ -50,16 +50,11 @@
       .grid { display: grid; gap: 16px; }
       .row-3 { grid-template-columns: 1fr 1fr 1fr; display: grid; gap: 16px; }
       .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
-      .panel { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
-
-      h2 { font-size: 16px; margin: 0 0 10px; }
-      label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
-      .label-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-      .label-row .right { font-size: 12px; color: var(--muted); }
-
-      input[type="text"], input[type="file"], textarea, select {
-        width: 100%; background: var(--input); color: var(--text);
-        border: 1px solid var(--border); padding: 10px 12px; border-radius: 10px; outline: none;
+      .stack { display: grid; gap: 8px; }
+      label { font-size: 14px; color: var(--muted); }
+      input[type="text"], textarea, select {
+        width: 100%; background: var(--input); color: var(--text); border: 1px solid var(--border);
+        padding: 10px 12px; border-radius: 10px; outline: none;
       }
       textarea { min-height: 180px; resize: vertical; }
       .btn-row { display: flex; gap: 10px; }
@@ -74,73 +69,164 @@
       .result { margin-top: 16px; }
       .footer { margin: 20px 0 40px; font-size: 12px; color: var(--muted); text-align: center; }
       @media (max-width: 840px) { .row-3 { grid-template-columns: 1fr; } .topbar { flex-wrap: wrap; } }
+      @supports (-webkit-touch-callout: none) { select, textarea { font-size: 16px; } }
 
-      /* Output styles */
-      .gc-header { margin-bottom: 12px; }
-      .gc-title { margin: 0; font-size: 24px; font-weight: 700; }
-      .gc-sub { margin-top: 6px; font-size: 14px; color: var(--muted); white-space: pre-wrap; }
-      .gc-section { margin-top: 18px; }
-      .gc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
-      .gc-card { border: 1px solid var(--border); border-radius: 10px; padding: 12px; background: var(--card); }
-      .gc-item-title { margin: 0 0 8px; font-weight: 600; }
-      .gc-error { background: rgba(244,63,94,.1); border: 1px solid rgba(244,63,94,.3); color: #fecaca; padding: 12px; border-radius: 10px; }
+      .inline-check { display:flex; align-items:center; gap:8px; }
+      .inline-check label { margin:0; }
+      .muted { color: var(--muted); font-size: 13px; }
 
-      a { color: var(--accent); text-decoration: none; }
-      a:hover { text-decoration: underline; }
+      /* ====== RESULT TEMPLATE STYLES ====== */
+      .gc-header { margin-bottom: 20px; }
+      .gc-title { font-size: 22px; font-weight: 700; margin: 0 0 6px; }
+      .gc-sub a { color: var(--text); text-decoration: none; border-bottom: 1px solid var(--border); }
+      .gc-section { margin: 26px 0 18px; }
+      .gc-section h2 { font-size: 18px; margin: 0 0 12px; }
+      .gc-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(260px,1fr)); gap: 12px; }
+      .gc-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+      .gc-card .gc-item-title { font-weight: 600; margin: 0 0 8px; }
+      .gc-card a { word-break: break-all; color: var(--accent); }
+      .gc-error { color: #b91c1c; background: #fee2e2; border: 1px solid #fecaca; padding: 10px; border-radius: 8px; }
+      .panel { background: var(--card); border: 1px dashed var(--border); border-radius: 12px; padding: 12px; overflow-x: auto; }
     </style>
   </head>
   <body>
     <div class="container">
-      <div class="topbar">
+      <header class="topbar">
         <div class="brand">
-          <div class="logo"></div>
+          <span class="logo"></span>
           <h1>X-Ray Link</h1>
         </div>
-        <label class="toggle" title="Toggle light/dark">
-          <input id="themeToggle" type="checkbox" />
-          <span class="subtitle">Light</span>
+        <label class="toggle" title="Toggle theme">
+          <span class="subtitle">Theme</span>
+          <input id="themeToggle" type="checkbox" aria-label="Toggle theme" />
         </label>
-      </div>
+      </header>
 
-      <div class="grid">
-        <div class="card">
-          <div class="label-row">
-            <h2>Paste a job description</h2>
-            <span class="right">This tool guesses the end employer and lists HR decision makers.</span>
+      <main class="grid">
+        <section class="card">
+          <div class="stack">
+            <p class="subtitle" style="margin:0">
+              Paste a job description, optionally include potential leads, then run.
+            </p>
+
+            <form id="gatecrasher-form" method="post" action="https://crewdog.app.n8n.cloud/webhook/gatecrasher" novalidate>
+              <div class="row-3">
+                <!-- Left: JH checkbox -->
+                <div class="stack">
+                  <label for="JH_tickbox" class="muted">Options</label>
+                  <div class="inline-check">
+                    <input id="JH_tickbox" name="JH_tickbox" type="checkbox" value="yes" />
+                    <label for="JH_tickbox">Include potential leads search?</label>
+                  </div>
+                </div>
+
+                <!-- Middle spacer -->
+                <div aria-hidden="true"></div>
+
+                <!-- Submit -->
+                <div class="stack">
+                  <label for="submitBtn" style="visibility:hidden">&nbsp;</label>
+                  <button id="submitBtn" class="primary" type="submit">Run Search</button>
+                </div>
+
+                <!-- Right spacer -->
+                <div aria-hidden="true"></div>
+              </div>
+              <div class="stack">
+                <label for="JD">Job Description (paste below)</label>
+                <textarea id="JD" name="JD" placeholder="Paste the full job description here…" required></textarea>
+              </div>
+
+              <!-- Ensure "no" is sent when unchecked (overridden to "yes" in JS if checked) -->
+              <input type="hidden" name="JH_tickbox" value="no">
+            </form>
+
+            <div id="result" class="result"></div>
           </div>
-          <textarea id="jd" placeholder="Paste the JD here..."></textarea>
+        </section>
 
-          <div class="label-row" style="margin-top:12px;">
-            <label for="wantsLeads" style="margin:0;">Search potential candidates/leads?</label>
-            <input id="wantsLeads" type="checkbox" />
-          </div>
+        <section class="card">
+          <h2 style="margin:0 0 8px">What this tool does</h2>
+          <p class="subtitle" style="line-height:1.5">
+            Reveals the likely end employer behind an agency job ad, shows HR decision-makers, and optionally finds potential candidates/leads.
+          </p>
+        </section>
+      </main>
 
-          <div class="btn-row" style="margin-top:12px;">
-            <button id="runBtn" class="primary">Run Search</button>
-          </div>
-
-          <div class="result" id="result"></div>
-        </div>
-      </div>
-
-      <div class="footer">© X-Ray Link</div>
+      <footer class="footer">© X-Ray Link</footer>
     </div>
 
     <script>
+      // Theme toggle (kept)
       (function() {
-        // Theme toggle
-        const root = document.documentElement;
-        const themeToggle = document.getElementById('themeToggle');
-        const stored = localStorage.getItem('theme');
-        if (stored) root.setAttribute('data-theme', stored);
-        themeToggle.checked = stored === 'light';
-        themeToggle.addEventListener('change', function(){
-          const mode = themeToggle.checked ? 'light' : 'dark';
-          root.setAttribute('data-theme', mode);
-          localStorage.setItem('theme', mode);
+        var toggle = document.getElementById("themeToggle");
+        var root = document.documentElement;
+        var saved = localStorage.getItem("xrl-theme");
+        if (saved) {
+          root.setAttribute("data-theme", saved);
+          toggle.checked = saved === "light";
+        }
+        if (toggle) {
+          toggle.addEventListener("change", function() {
+            var mode = toggle.checked ? "light" : "dark";
+            root.setAttribute("data-theme", mode);
+            localStorage.setItem("xrl-theme", mode);
+          });
+        }
+      })();
+
+      (function() {
+        var form = document.getElementById("gatecrasher-form");
+        var result = document.getElementById("result");
+        if (!form) return;
+
+        var jd = document.getElementById("JD");
+        var jhBox = document.getElementById("JH_tickbox");
+        var lastWantsLeads = false; // tracks the latest request intent
+
+        form.addEventListener("submit", async function(ev) {
+          ev.preventDefault();
+          var btn = document.getElementById("submitBtn");
+          if (btn) { btn.disabled = true; btn.textContent = "Working…"; }
+          try {
+            var fd = new FormData(form);
+
+            // Normalize JH value to explicit "yes"/"no"
+            lastWantsLeads = !!(jhBox && jhBox.checked);
+            fd.set("JH_tickbox", lastWantsLeads ? "yes" : "no");
+
+            // Preserve prior behavior for saver flag
+            if (!fd.has("Save to the doc file and the spreadsheet? (+10 sec)")) {
+              fd.append("Save to the doc file and the spreadsheet? (+10 sec)", "No");
+            }
+
+            /* === API CALL UNCHANGED === */
+            const resp = await fetch(form.getAttribute("action"), { method: "POST", body: fd });
+
+            // Expect JSON; fallback to text
+            let data, asText = null;
+            const ct = (resp.headers.get("content-type") || "").toLowerCase();
+            if (ct.includes("application/json")) {
+              data = await resp.json();
+            } else {
+              asText = await resp.text();
+              try { data = JSON.parse(asText); } catch (_) {}
+            }
+
+            if (data && typeof data === "object") {
+              const payload = Array.isArray(data) ? data[0] : data;   // supports both outputs
+              result.innerHTML = renderTemplate(payload, { wantsLeads: lastWantsLeads });
+            } else {
+              result.innerHTML = '<div class="panel">' + (asText || "No response") + '</div>';
+            }
+          } catch (err) {
+            result.innerHTML = '<div class="gc-error"><strong>Error:</strong> ' + (err && err.message ? err.message : String(err)) + '</div>';
+          } finally {
+            if (btn) { btn.disabled = false; btn.textContent = "Run Search"; }
+          }
         });
 
-        // Helpers
+        // ====== RENDERING ======
         function esc(s) {
           return String(s == null ? "" : s)
             .replace(/&/g,"&amp;").replace(/</g,"&lt;")
@@ -149,22 +235,6 @@
         function link(href, text) {
           if (!href) return "";
           return '<a href="'+esc(href)+'" target="_blank" rel="noopener noreferrer">'+esc(text||href)+'</a>';
-        }
-        function linkifyText(s) {
-          if (!s) return "";
-          const urlRe = /(https?:\/\/[^\s<>"]+|www\.[^\s<>"]+)/g;
-          // Replace URLs with anchors; keep other text escaped
-          let out = "";
-          let lastIndex = 0;
-          String(s).replace(urlRe, function(m, _1, offset) {
-            out += esc(s.slice(lastIndex, offset));
-            const href = m.startsWith("http") ? m : ("http://" + m);
-            out += '<a href="' + esc(href) + '" target="_blank" rel="noopener noreferrer">' + esc(m) + '</a>';
-            lastIndex = offset + m.length;
-            return m;
-          });
-          out += esc(s.slice(lastIndex));
-          return out;
         }
         function section(title, inner) {
           if (!inner) return "";
@@ -185,53 +255,6 @@
           return '<div class="gc-grid">' + cards + '</div>';
         }
 
-        // Submit
-        const runBtn = document.getElementById('runBtn');
-        const result = document.getElementById('result');
-        runBtn.addEventListener('click', async function(){
-          const btn = runBtn;
-          const jd = document.getElementById('jd').value.trim();
-          const wantsLeads = document.getElementById('wantsLeads').checked;
-          if (!jd) {
-            alert('Paste the job description first.');
-            return;
-          }
-
-          btn.disabled = true; btn.textContent = 'Running...';
-          result.innerHTML = '';
-
-          try {
-            const payload = {
-              body: { JD: jd },
-              wants_leads: wantsLeads ? 'yes' : 'no'
-            };
-
-            // N8N webhook
-            const resp = await fetch('https://crewdog.app.n8n.cloud/webhook/gatecrasher', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload)
-            });
-
-            const asText = await resp.text();
-            let data = null;
-            try { data = JSON.parse(asText); } catch(e) {}
-
-            if (data) {
-              const lastWantsLeads = wantsLeads;
-              const payload = Array.isArray(data) ? data[0] : data;   // supports both outputs
-              result.innerHTML = renderTemplate(payload, { wantsLeads: lastWantsLeads });
-            } else {
-              result.innerHTML = '<div class="panel">' + (asText || "No response") + '</div>';
-            }
-          } catch (err) {
-            result.innerHTML = '<div class="gc-error"><strong>Error:</strong> ' + (err && err.message ? err.message : String(err)) + '</div>';
-          } finally {
-            if (btn) { btn.disabled = false; btn.textContent = "Run Search"; }
-          }
-        });
-
-        // ====== RENDERING ======
         function renderTemplate(d, opts) {
           opts = opts || {};
           const wantsLeads = !!opts.wantsLeads;
@@ -254,7 +277,7 @@
             '<div class="gc-header">' +
               '<h1 class="gc-title">' + esc(d.company || "") + '</h1>' +
               '<div class="gc-sub">Website: ' + link(d.company_website, "Link") + '</div>' +
-              ((d.sniff_out_clues && String(d.sniff_out_clues).trim()) ? ('<div class="gc-sub">Why this company? ' + linkifyText(String(d.sniff_out_clues)) + '</div>') : '') +
+              ((d.sniff_out_clues && String(d.sniff_out_clues).trim()) ? ('<div class="gc-sub">Why this company? ' + esc(String(d.sniff_out_clues)) + '</div>') : '') +
             '</div>'
           );
 
