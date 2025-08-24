@@ -231,6 +231,15 @@
         });
       })();
     </script>
+
+    <!-- === Supabase client (connection only; no other changes) === -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+      const supabase = window.supabase.createClient(
+        "https://lurzlhpjxcxhuoqpbok.supabase.co",
+        "your_publishable_key"
+      );
+      // You can now use: supabase.auth.signUp / signInWithPassword / getSession / signOut
+    </script>
   </body>
 </html>
-
