@@ -79,7 +79,9 @@
       .gc-header { margin-bottom: 20px; }
       .gc-title { font-size: 22px; font-weight: 700; margin: 0 0 6px; }
       .gc-sub a { color: var(--text); text-decoration: none; border-bottom: 1px solid var(--border); }
-      .gc-sub.clues { font-style: italic; color: var(--accent); margin-top: 8px; padding-left: 4px; }
+      .gc-sub.clues { margin-top: 16px; }
+      .gc-sub.clues h2 { font-size: 18px; margin: 0 0 6px; color: var(--accent); }
+      .gc-sub.clues p { margin: 0; font-size: 14px; color: var(--muted); line-height: 1.5; }
       .gc-section { margin: 26px 0 18px; }
       .gc-section h2 { font-size: 18px; margin: 0 0 12px; }
       .gc-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(260px,1fr)); gap: 12px; }
@@ -278,7 +280,12 @@
             '<div class="gc-header">' +
               '<h1 class="gc-title">' + esc(d.company || "") + '</h1>' +
               '<div class="gc-sub">Website: ' + link(d.company_website, "Link") + '</div>' +
-              ((d.sniff_out_clues && String(d.sniff_out_clues).trim()) ? ('<div class="gc-sub clues">Why this company? ' + esc(String(d.sniff_out_clues)) + '</div>') : '') +
+              ((d.sniff_out_clues && String(d.sniff_out_clues).trim()) ? (
+                '<div class="gc-sub clues">' +
+                  '<h2>Why this company?</h2>' +
+                  '<p>' + esc(String(d.sniff_out_clues)) + '</p>' +
+                '</div>'
+              ) : '') +
             '</div>'
           );
 
