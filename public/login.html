@@ -26,7 +26,6 @@
         --border: #e5e7eb;
         --input: #f1f5f9;
       }
-
       * { box-sizing: border-box; }
       html, body { height: 100%; }
       body {
@@ -47,7 +46,6 @@
       .toggle input:checked::after { transform: translateX(16px); }
       .subtitle { font-size: 13px; color: var(--muted); margin: 0; }
 
-      /* Centered auth block */
       .center-wrap { flex: 1 1 auto; display: grid; place-items: center; padding: 16px 0 32px; }
       .auth-card { width: 100%; max-width: 420px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
       .auth-card h2 { margin: 0 0 8px; font-size: 22px; }
@@ -70,13 +68,11 @@
       .error { color: #b91c1c; background: #fee2e2; border: 1px solid #fecaca; padding: 10px; border-radius: 8px; font-size: 13px; margin-bottom: 10px; display:none; }
 
       .footer { margin: 26px 0 40px; font-size: 12px; color: var(--muted); text-align: center; }
-
       @supports (-webkit-touch-callout: none) { .button, input { font-size: 16px; } }
     </style>
   </head>
   <body>
     <div class="container">
-      <!-- Top bar -->
       <header class="topbar">
         <div class="brand">
           <span class="logo"></span>
@@ -88,10 +84,8 @@
         </label>
       </header>
 
-      <!-- Centered login/registration -->
       <main class="center-wrap">
         <section class="auth-card" aria-live="polite">
-          <!-- LOGIN VIEW -->
           <div id="view-login">
             <h2>Login</h2>
             <p>Enter your email and password to continue.</p>
@@ -116,7 +110,6 @@
             </p>
           </div>
 
-          <!-- REGISTER VIEW -->
           <div id="view-register" style="display:none">
             <h2>Create account</h2>
             <p>Register with your email and a password.</p>
@@ -146,100 +139,55 @@
       <footer class="footer">© X-Ray Link</footer>
     </div>
 
-    <script>
-      // Theme toggle (match existing pages) — uses localStorage "xrl-theme".
-      (function() {
-        var toggle = document.getElementById("themeToggle");
-        var root = document.documentElement;
-        var saved = localStorage.getItem("xrl-theme");
-        if (saved) {
-          root.setAttribute("data-theme", saved);
-          toggle.checked = saved === "light";
-        }
-        if (toggle) {
-          toggle.addEventListener("change", function() {
-            var mode = toggle.checked ? "light" : "dark";
-            root.setAttribute("data-theme", mode);
-            localStorage.setItem("xrl-theme", mode);
-          });
-        }
-      })();
-
-      // View switching: Login <-> Register
-      (function() {
-        var vLogin = document.getElementById("view-login");
-        var vReg   = document.getElementById("view-register");
-        var toReg  = document.getElementById("to-register");
-        var toLog  = document.getElementById("to-login");
-
-        if (toReg) toReg.addEventListener("click", function(){ vLogin.style.display="none"; vReg.style.display="block"; });
-        if (toLog) toLog.addEventListener("click",  function(){ vReg.style.display="none"; vLogin.style.display="block"; });
-      })();
-
-      // Front-end logic only (no backend yet):
-      // - Validate inputs
-      // - On success, you can set a client token/email to localStorage and redirect to Run page.
-      (function() {
-        var loginForm = document.getElementById("form-login");
-        var regForm   = document.getElementById("form-register");
-        var loginErr  = document.getElementById("login-error");
-        var regErr    = document.getElementById("reg-error");
-
-        // Helpers
-        function showErr(el, msg){ if(!el) return; el.textContent = msg || ""; el.style.display = msg ? "block" : "none"; }
-        function validEmail(s){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s||"").trim()); }
-
-        // LOGIN submit (stub)
-        if (loginForm) loginForm.addEventListener("submit", function(ev){
-          ev.preventDefault();
-          showErr(loginErr, "");
-          var email = document.getElementById("login-email").value.trim();
-          var pass  = document.getElementById("login-pass").value;
-
-          if (!validEmail(email)) { showErr(loginErr, "Enter a valid email."); return; }
-          if (!pass || pass.length < 6) { showErr(loginErr, "Password must be at least 6 characters."); return; }
-
-          // TODO: Replace this block by real backend auth.
-          // Simulate success:
-          localStorage.setItem("xrl_email", email);
-          // When backend is ready, set the access key/token you validate in n8n:
-          // localStorage.setItem("xrl_key", "<server-issued-token>");
-          // localStorage.setItem("xrl_key_ts", Date.now().toString());
-
-          location.href = "./run.html"; // go to Run page
-        });
-
-        // REGISTER submit (stub)
-        if (regForm) regForm.addEventListener("submit", function(ev){
-          ev.preventDefault();
-          showErr(regErr, "");
-          var email = document.getElementById("reg-email").value.trim();
-          var pass1 = document.getElementById("reg-pass").value;
-          var pass2 = document.getElementById("reg-pass2").value;
-
-          if (!validEmail(email)) { showErr(regErr, "Enter a valid email."); return; }
-          if (!pass1 || pass1.length < 6) { showErr(regErr, "Password must be at least 6 characters."); return; }
-          if (pass1 !== pass2) { showErr(regErr, "Passwords do not match."); return; }
-
-          // TODO: Replace with backend registration call + server-issued token.
-          // Simulate success:
-          localStorage.setItem("xrl_email", email);
-          // localStorage.setItem("xrl_key", "<server-issued-token>");
-          // localStorage.setItem("xrl_key_ts", Date.now().toString());
-
-          location.href = "./run.html";
-        });
-      })();
-    </script>
-
-    <!-- === Supabase client (connection only; no other changes) === -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
       const supabase = window.supabase.createClient(
         "https://lurzlhpjxcxhuoqpbok.supabase.co",
-        "your_publishable_key"
+        "sb_publishable_x0hlg96FMQ9arkjGd2F9Pw_yQ-fLI3r"
       );
-      // You can now use: supabase.auth.signUp / signInWithPassword / getSession / signOut
+
+      // Login
+      (function () {
+        const loginForm = document.getElementById("form-login");
+        const loginErr  = document.getElementById("login-error");
+        function showErr(el, msg){ el.textContent = msg||""; el.style.display = msg ? "block" : "none"; }
+
+        if (loginForm) loginForm.addEventListener("submit", async (ev) => {
+          ev.preventDefault();
+          showErr(loginErr, "");
+          const email = document.getElementById("login-email").value.trim();
+          const password = document.getElementById("login-pass").value;
+          if (!email || !password) return showErr(loginErr, "Email and password required.");
+
+          const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+          if (error) return showErr(loginErr, error.message || "Login failed.");
+
+          window.location.href = "./run.html";
+        });
+      })();
+
+      // Register
+      (function () {
+        const regForm = document.getElementById("form-register");
+        const regErr  = document.getElementById("reg-error");
+        function showErr(el, msg){ el.textContent = msg||""; el.style.display = msg ? "block" : "none"; }
+
+        if (regForm) regForm.addEventListener("submit", async (ev) => {
+          ev.preventDefault();
+          showErr(regErr, "");
+          const email = document.getElementById("reg-email").value.trim();
+          const pass1 = document.getElementById("reg-pass").value;
+          const pass2 = document.getElementById("reg-pass2").value;
+          if (!email || !pass1 || !pass2) return showErr(regErr, "Fill all fields.");
+          if (pass1 !== pass2) return showErr(regErr, "Passwords do not match.");
+          if (pass1.length < 6) return showErr(regErr, "Min 6 characters.");
+
+          const { data, error } = await supabase.auth.signUp({ email, password: pass1 });
+          if (error) return showErr(regErr, error.message || "Registration failed.");
+
+          window.location.href = "./run.html";
+        });
+      })();
     </script>
   </body>
 </html>
