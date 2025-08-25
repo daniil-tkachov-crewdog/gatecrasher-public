@@ -105,7 +105,7 @@
               </div>
               <div class="row">
                 <button class="button primary" type="submit" id="login-btn">Login</button>
-                <a class="button" href="./run.html">Back to Run</a>
+                <a class="button" href="./index.html">Back Home</a>
               </div>
             </form>
             <p class="muted" style="margin-top:12px">
@@ -166,7 +166,7 @@
         }
       })();
 
-      // Views
+      // Views (unchanged)
       (function() {
         const vLogin = document.getElementById("view-login");
         const vReg   = document.getElementById("view-register");
@@ -182,12 +182,12 @@
         "sb_publishable_x0hlg96FMQ9arkjGd2F9Pw_yQ-fLI3r"
       );
 
-      // Helpers
+      // Helpers (unchanged)
       function show(el, msg){ if(!el) return; el.textContent = msg||""; el.style.display = msg ? "block" : "none"; }
       function disable(btn, on){ if(!btn) return; btn.disabled = !!on; }
       function validEmail(s){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s||"").trim()); }
 
-      // LOGIN (shows error on wrong password)
+      // LOGIN
       (function () {
         const form = document.getElementById("form-login");
         const btn  = document.getElementById("login-btn");
@@ -207,12 +207,12 @@
           const { data, error } = await supabase.auth.signInWithPassword({ email, password });
           disable(btn, false);
 
-          if (error) return show(err, error.message || "Login failed. Check email/password.");
+          if (error) return show(err, "Invalid email or password");
           window.location.href = "./run.html";
         });
       })();
 
-      // REGISTER (blocks duplicate emails; shows verify note when confirmation is on)
+      // REGISTER
       (function () {
         const form = document.getElementById("form-register");
         const btn  = document.getElementById("reg-btn");
@@ -236,16 +236,20 @@
           disable(btn, false);
 
           if (error) {
-            // Supabase returns "User already registered" (status 400) for duplicates
-            return show(err, /already/i.test(error.message) ? "This email is already registered." : (error.message || "Registration failed."));
+            return show(err, /already/i.test(error.message) ? "Email already in use" : "Registration failed: " + error.message);
           }
 
-          // If email confirmation is enabled, there may be no session yet:
-          if (!data.session) {
-            show(ok, "Check your email to confirm your account, then log in.");
+          // Attempt auto-login
+          const { loginData, loginError } = await supabase.auth.signInWithPassword({ email, password: pass1 });
+          if (loginError) {
+            show(ok, "Registration successful, but auto-login failed. Please log in manually.");
+            document.getElementById("view-register").style.display = "none";
+            document.getElementById("view-login").style.display = "block";
             return;
           }
-          window.location.href = "./run.html";
+
+          show(ok, "Registration successful! Redirecting...");
+          setTimeout(() => window.location.href = "./run.html", 2000);
         });
       })();
     </script>
