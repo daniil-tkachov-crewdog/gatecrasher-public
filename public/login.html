@@ -204,11 +204,20 @@
           if (!password || password.length < 6) return show(err, "Password must be at least 6 characters.");
 
           disable(btn, true);
-          const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-          disable(btn, false);
+          try {
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+            disable(btn, false);
 
-          if (error) return show(err, "Invalid email or password");
-          window.location.href = "./run.html";
+            if (error) {
+              console.log("Login error details:", error);
+              return show(err, "Invalid email or password");
+            }
+            window.location.href = "./run.html";
+          } catch (e) {
+            disable(btn, false);
+            console.error("Login network error:", e);
+            show(err, "Failed to connect to server. Check your internet or try again later.");
+          }
         });
       })();
 
@@ -232,24 +241,32 @@
           if (pass1 !== pass2) return show(err, "Passwords do not match.");
 
           disable(btn, true);
-          const { data, error } = await supabase.auth.signUp({ email, password: pass1 });
-          disable(btn, false);
+          try {
+            const { data, error } = await supabase.auth.signUp({ email, password: pass1 });
+            disable(btn, false);
 
-          if (error) {
-            return show(err, /already/i.test(error.message) ? "Email already in use" : "Registration failed: " + error.message);
+            if (error) {
+              console.log("Registration error details:", error);
+              return show(err, /already/i.test(error.message) ? "Email already in use" : "Registration failed: " + error.message);
+            }
+
+            // Attempt auto-login
+            const { loginData, loginError } = await supabase.auth.signInWithPassword({ email, password: pass1 });
+            if (loginError) {
+              console.log("Auto-login error details:", loginError);
+              show(ok, "Registration successful, but auto-login failed. Please log in manually.");
+              document.getElementById("view-register").style.display = "none";
+              document.getElementById("view-login").style.display = "block";
+              return;
+            }
+
+            show(ok, "Registration successful! Redirecting...");
+            setTimeout(() => window.location.href = "./run.html", 2000);
+          } catch (e) {
+            disable(btn, false);
+            console.error("Registration network error:", e);
+            show(err, "Failed to connect to server. Check your internet or try again later.");
           }
-
-          // Attempt auto-login
-          const { loginData, loginError } = await supabase.auth.signInWithPassword({ email, password: pass1 });
-          if (loginError) {
-            show(ok, "Registration successful, but auto-login failed. Please log in manually.");
-            document.getElementById("view-register").style.display = "none";
-            document.getElementById("view-login").style.display = "block";
-            return;
-          }
-
-          show(ok, "Registration successful! Redirecting...");
-          setTimeout(() => window.location.href = "./run.html", 2000);
         });
       })();
     </script>
