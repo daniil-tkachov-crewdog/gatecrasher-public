@@ -90,6 +90,40 @@
       .gc-card a { word-break: break-all; color: var(--accent); }
       .gc-error { color: #b91c1c; background: #fee2e2; border: 1px solid #fecaca; padding: 10px; border-radius: 8px; }
       .panel { background: var(--card); border: 1px dashed var(--border); border-radius: 12px; padding: 12px; overflow-x: auto; }
+
+      /* --- Footer enhancements (copied from index.html) --- */
+      .footer {
+        margin: 26px 0 0;
+        padding: 16px 12px 24px;
+        background: #070a0d;
+        border-top: 1px solid var(--border);
+      }
+      .footer-nav {
+        display: flex;
+        gap: 16px;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-bottom: 8px;
+      }
+      .footer a {
+        color: #ffffff;
+        text-decoration: none;
+        font-weight: 600;
+      }
+      .footer a:hover,
+      .footer a:focus {
+        text-decoration: underline;
+      }
+      .footer-copy {
+        color: var(--muted);
+      }
+      @media (max-width: 840px) {
+        .footer-nav {
+          flex-direction: column;
+          align-items: center;
+          gap: 10px;
+        }
+      }
     </style>
   </head>
   <body>
@@ -97,7 +131,7 @@
       <header class="topbar">
         <div class="brand">
           <span class="logo"></span>
-          <h1><a href="./index.html" style="color:inherit; text-decoration:none">X-Ray Link</a></h1>
+          <h1>X-Ray Link</h1>
         </div>
         <label class="toggle" title="Toggle theme">
           <span class="subtitle">Theme</span>
@@ -156,7 +190,15 @@
         </section>
       </main>
 
-      <footer class="footer">© X-Ray Link</footer>
+      <footer class="footer">
+        <nav class="footer-nav" aria-label="Footer">
+          <a href="./Privacy_policy.html">Privacy Policy</a>
+          <a href="./Terms_of_use.html">Terms of Use</a>
+          <a href="./FAQ.html">FAQ</a>
+          <a href="./Support.html">Support</a>
+        </nav>
+        <div class="footer-copy">© X-Ray Link</div>
+      </footer>
     </div>
 
     <script>
