@@ -1,1 +1,261 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge" />
+    <title>X-Ray Link — FAQ</title>
+    <style>
+      :root {
+        --bg: #0b0e11;
+        --card: #12161c;
+        --text: #e6eaf2;
+        --muted: #94a3b8;
+        --accent: #3b82f6;
+        --border: #1f2937;
+        --input: #0f172a;
+      }
+      [data-theme="light"] {
+        --bg: #ffffff;
+        --card: #f7f8fa;
+        --text: #0f172a;
+        --muted: #475569;
+        --accent: #2563eb;
+        --border: #e5e7eb;
+        --input: #f1f5f9;
+      }
+
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial;
+        background: var(--bg); color: var(--text);
+        -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%;
+      }
+      .container { max-width: 960px; margin: 0 auto; padding: 16px; }
+      .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; }
+      .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--text); text-decoration: none; }
+      .logo { width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(135deg, var(--accent), #00c2ff); }
+      .brand h1 { font-size: 18px; margin: 0; }
+      .toggle { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--border); background: var(--card);
+        padding: 6px 10px; border-radius: 999px; cursor: pointer; }
+      .toggle input { appearance: none; width: 36px; height: 20px; border-radius: 999px; background: var(--border); position: relative; }
+      .toggle input:checked { background: var(--accent); }
+      .toggle input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 999px; background: #fff; transition: transform .2s ease; }
+      .toggle input:checked::after { transform: translateX(16px); }
+      .subtitle { font-size: 13px; color: var(--muted); margin: 0; }
+
+      .grid { display: grid; gap: 16px; }
+      .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+
+      /* FAQ styles */
+      .faq-title { font-size: 24px; margin: 0 0 6px; }
+      .faq-intro { color: var(--muted); margin: 0 0 12px; }
+      .faq-list { display: grid; gap: 10px; }
+      details.faq-item { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 0; overflow: hidden; }
+      .faq-summary {
+        list-style: none; cursor: pointer; padding: 14px 16px; margin: 0;
+        display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      }
+      .faq-summary::-webkit-details-marker { display: none; }
+      .faq-q { font-weight: 600; font-size: 15px; }
+      .faq-caret { transition: transform .2s ease; }
+      details[open] .faq-caret { transform: rotate(90deg); }
+      .faq-body { padding: 0 16px 14px 16px; color: var(--text); }
+      .faq-body p { margin: 10px 0 0; color: var(--muted); line-height: 1.6; }
+      .faq-body a { color: var(--accent); }
+
+      /* Footer (same as run.html enhanced footer) */
+      .footer {
+        margin: 26px 0 0;
+        padding: 16px 12px 24px;
+        background: #070a0d;
+        border-top: 1px solid var(--border);
+        font-size: 12px; text-align: center;
+      }
+      .footer-nav {
+        display: flex;
+        gap: 16px;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-bottom: 8px;
+      }
+      .footer a {
+        color: #ffffff;
+        text-decoration: none;
+        font-weight: 600;
+      }
+      .footer a:hover,
+      .footer a:focus { text-decoration: underline; }
+      .footer-copy { color: var(--muted); }
+
+      @media (max-width: 840px) {
+        .footer-nav { flex-direction: column; align-items: center; gap: 10px; }
+      }
+      @supports (-webkit-touch-callout: none) { summary, button, input, textarea, select { font-size: 16px; } }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Header (logo + title both link to home) -->
+      <header class="topbar">
+        <a class="brand" href="./index.html" title="Back to Home">
+          <span class="logo"></span>
+          <h1>X-Ray Link</h1>
+        </a>
+        <label class="toggle" title="Toggle theme">
+          <span class="subtitle">Theme</span>
+          <input id="themeToggle" type="checkbox" aria-label="Toggle theme" />
+        </label>
+      </header>
+
+      <main class="grid">
+        <section class="card">
+          <h2 class="faq-title">Frequently Asked Questions</h2>
+          <p class="faq-intro">Answers about how X-Ray Link works, data use, and common issues.</p>
+
+          <div class="faq-list">
+            <details class="faq-item">
+              <summary class="faq-summary">
+                <span class="faq-q">What does X-Ray Link actually do?</span>
+                <span class="faq-caret">›</span>
+              </summary>
+              <div class="faq-body">
+                <p>X-Ray Link analyzes an agency job description to infer the most likely end employer, then surfaces that company’s website and relevant HR/People team profiles. Optionally, it can return potential candidate leads.</p>
+              </div>
+            </details>
+
+            <details class="faq-item">
+              <summary class="faq-summary">
+                <span class="faq-q">How do I use the tool?</span>
+                <span class="faq-caret">›</span>
+              </summary>
+              <div class="faq-body">
+                <p>Go to the Run page, paste the full job description, optionally tick “Include potential leads search?”, and press <em>Run Search</em>. Results render below the form in the same page.</p>
+              </div>
+            </details>
+
+            <details class="faq-item">
+              <summary class="faq-summary">
+                <span class="faq-q">What does the “Include potential leads search?” option do?</span>
+                <span class="faq-caret">›</span>
+              </summary>
+              <div class="faq-body">
+                <p>When enabled, the workflow also returns a list of potential candidate profiles that may fit the same role. If disabled, only the company guess, website, and HR contacts are shown.</p>
+              </div>
+            </details>
+
+            <details class="faq-item">
+              <summary class="faq-summary">
+                <span class="faq-q">Do I need an account to run searches?</span>
+                <span class="faq-caret">›</span>
+              </summary>
+              <div class="faq-body">
+                <p>You can explore from the home page, but running the tool and accessing advanced options is designed to work alongside the login flow. Use the <strong>Login</strong> page to sign in or register.</p>
+              </div>
+            </details>
+
+            <details class="faq-item">
+              <summary class="faq-summary">
+                <span class="faq-q">What data do you store about my searches?</span>
+                <span class="faq-caret">›</span>
+              </summary>
+              <div class="faq-body">
+                <p>We only process the job description you submit to generate results. See our <a href="./Privacy_policy.html">Privacy Policy</a> for details on what may be logged and for how long.</p>
+              </div>
+            </details>
+
+            <details class="faq-item">
+              <summary class="faq-summary">
+                <span class="faq-q">The result looks wrong. What should I check?</span>
+                <span class="faq-caret">›</span>
+              </summary>
+              <div class="faq-body">
+                <p>Ensure the pasted job description is complete (title, responsibilities, location). Results can vary if the text is very short, heavily anonymized, or missing a clear location.</p>
+              </div>
+            </details>
+
+            <details class="faq-item">
+              <summary class="faq-summary">
+                <span class="faq-q">Why don’t I always see “Potential leads”?</span>
+                <span class="faq-caret">›</span>
+              </summary>
+              <div class="faq-body">
+                <p>Leads only appear if you tick the option and the search finds enough qualifying profiles. If none are found, the section is hidden to avoid noise.</p>
+              </div>
+            </details>
+
+            <details class="faq-item">
+              <summary class="faq-summary">
+                <span class="faq-q">Does X-Ray Link contact HR people or candidates for me?</span>
+                <span class="faq-caret">›</span>
+              </summary>
+              <div class="faq-body">
+                <p>No. The tool surfaces links so you can review and reach out yourself using your preferred channels.</p>
+              </div>
+            </details>
+
+            <details class="faq-item">
+              <summary class="faq-summary">
+                <span class="faq-q">Is the employer match guaranteed to be correct?</span>
+                <span class="faq-caret">›</span>
+              </summary>
+              <div class="faq-body">
+                <p>No tool can guarantee 100% accuracy. Treat the result as the <em>most likely</em> match based on available signals; verify on the company site and careers pages.</p>
+              </div>
+            </details>
+
+            <details class="faq-item">
+              <summary class="faq-summary">
+                <span class="faq-q">Where can I report a bug or ask for help?</span>
+                <span class="faq-caret">›</span>
+              </summary>
+              <div class="faq-body">
+                <p>Visit our <a href="./Support.html">Support</a> page and tell us what happened. Include the job description you used and any error messages you saw.</p>
+              </div>
+            </details>
+          </div>
+        </section>
+
+        <section class="card">
+          <p class="subtitle" style="margin:0">
+            Didn’t find an answer? <a href="./Support.html" style="color:var(--text); border-bottom:1px solid var(--border); text-decoration:none;">Contact Support</a>
+          </p>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <nav class="footer-nav" aria-label="Footer">
+          <a href="./Privacy_policy.html">Privacy Policy</a>
+          <a href="./Terms_of_use.html">Terms of Use</a>
+          <a href="./FAQ.html" aria-current="page">FAQ</a>
+          <a href="./Support.html">Support</a>
+        </nav>
+        <div class="footer-copy">© X-Ray Link</div>
+      </footer>
+    </div>
+
+    <script>
+      // Theme toggle (same behavior as other pages)
+      (function() {
+        var toggle = document.getElementById("themeToggle");
+        var root = document.documentElement;
+        var saved = localStorage.getItem("xrl-theme");
+        if (saved) {
+          root.setAttribute("data-theme", saved);
+          if (toggle) toggle.checked = saved === "light";
+        }
+        if (toggle) {
+          toggle.addEventListener("change", function() {
+            var mode = toggle.checked ? "light" : "dark";
+            root.setAttribute("data-theme", mode);
+            localStorage.setItem("xrl-theme", mode);
+          });
+        }
+      })();
+    </script>
+  </body>
+</html>
 
