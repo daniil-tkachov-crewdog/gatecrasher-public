@@ -78,6 +78,40 @@
         .hero h2 { font-size: 24px; }
       }
       @supports (-webkit-touch-callout: none) { .button, input, textarea, select { font-size: 16px; } }
+
+      /* --- Footer enhancements (added) --- */
+      .footer {
+        margin: 26px 0 0;            /* keep top spacing, remove large bottom gap */
+        padding: 16px 12px 24px;
+        background: #070a0d;         /* darker than page bg */
+        border-top: 1px solid var(--border);
+      }
+      .footer-nav {
+        display: flex;
+        gap: 16px;
+        justify-content: center;
+        flex-wrap: wrap;             /* wrap nicely on narrow widths */
+        margin-bottom: 8px;
+      }
+      .footer a {
+        color: #ffffff;              /* white highlighted links */
+        text-decoration: none;
+        font-weight: 600;
+      }
+      .footer a:hover,
+      .footer a:focus {
+        text-decoration: underline;
+      }
+      .footer-copy {
+        color: var(--muted);
+      }
+      @media (max-width: 840px) {
+        .footer-nav {
+          flex-direction: column;    /* vertical on mobiles */
+          align-items: center;
+          gap: 10px;
+        }
+      }
     </style>
   </head>
   <body>
@@ -102,7 +136,7 @@
           <h2>Reveal the real employer behind agency job ads.</h2>
           <p>Paste a job description → X-Ray Link guesses the end employer, pulls HR decision-makers, and can even surface matching candidate profiles.</p>
           <div class="cta-row">
-            <a class="button primary" href="./login.html">Try it now</a>
+            <a class="button primary" href="./index.webhook.html">Try it now</a>
             <a class="button" href="./login.html">Login to continue</a>
           </div>
         </section>
@@ -157,13 +191,21 @@
 
         <section class="card">
           <div style="display:flex; gap:10px; flex-wrap:wrap">
-            <a class="button primary" href="./login.html">Start a search</a>
+            <a class="button primary" href="./index.webhook.html">Start a search</a>
             <a class="button" href="./login.html">Login</a>
           </div>
         </section>
       </main>
 
-      <footer class="footer">© X-Ray Link</footer>
+      <footer class="footer">
+        <nav class="footer-nav" aria-label="Footer">
+          <a href="./Privacy_policy.html">Privacy Policy</a>
+          <a href="./Terms_of_use.html">Terms of Use</a>
+          <a href="./FAQ.html">FAQ</a>
+          <a href="./Support.html">Support</a>
+        </nav>
+        <div class="footer-copy">© X-Ray Link</div>
+      </footer>
     </div>
 
     <script>
