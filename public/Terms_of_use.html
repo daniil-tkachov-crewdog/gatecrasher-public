@@ -16,6 +16,7 @@
         --accent: #3b82f6;
         --border: #1f2937;
         --input: #0f172a;
+        --footer: #151a1f; /* slightly brighter than black for dark theme */
       }
       [data-theme="light"] {
         --bg: #ffffff;
@@ -25,6 +26,7 @@
         --accent: #2563eb;
         --border: #e5e7eb;
         --input: #f1f5f9;
+        --footer: #f2f2f2; /* slightly darker than white for light theme */
       }
 
       * { box-sizing: border-box; }
@@ -68,13 +70,16 @@
 
       .result { margin-top: 16px; }
 
-      /* --- Footer (enhanced) --- */
+      /* ===== Footer (full-width, theme-aware, mobile-friendly) ===== */
       .footer {
-        margin: 26px 0 0;
+        flex-shrink: 0;
+        width: 100%;
+        background: var(--footer);
         padding: 16px 12px 24px;
-        background: #070a0d;
         border-top: 1px solid var(--border);
+        font-size: 12px;
         text-align: center;
+        margin: 0; /* no gaps */
       }
       .footer-nav {
         display: flex;
@@ -83,26 +88,13 @@
         flex-wrap: wrap;
         margin-bottom: 8px;
       }
-      .footer a {
-        color: #ffffff;
-        text-decoration: none;
-        font-weight: 600;
-      }
-      .footer a:hover,
-      .footer a:focus {
-        text-decoration: underline;
-      }
-      .footer-copy {
-        color: var(--muted);
-      }
+      .footer a { color: var(--text); text-decoration: none; font-weight: 600; }
+      .footer a:hover, .footer a:focus { text-decoration: underline; }
+      .footer-copy { color: var(--muted); }
       @media (max-width: 840px) {
         .row-3 { grid-template-columns: 1fr; }
         .topbar { flex-wrap: wrap; }
-        .footer-nav {
-          flex-direction: column;
-          align-items: center;
-          gap: 10px;
-        }
+        .footer-nav { flex-direction: column; align-items: center; gap: 10px; }
       }
 
       /* --- Legal page tweaks --- */
@@ -239,6 +231,7 @@
         </section>
       </main>
 
+      <!-- Footer OUTSIDE the container for full width -->
       <footer class="footer">
         <nav class="footer-nav" aria-label="Footer">
           <a href="./Privacy_policy.html">Privacy Policy</a>
@@ -271,4 +264,3 @@
     </script>
   </body>
 </html>
-
