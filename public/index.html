@@ -79,22 +79,35 @@
       }
       @supports (-webkit-touch-callout: none) { .button, input, textarea, select { font-size: 16px; } }
 
-      /* --- Footer enhancements (added) --- */
+      /* --- Footer enhancements (updated) --- */
       .footer {
-        margin: 26px 0 0;            /* keep top spacing, remove large bottom gap */
+        /* full-bleed background to side walls while content stays centered */
+        margin: 26px 0 0;
         padding: 16px 12px 24px;
-        background: #070a0d;         /* darker than page bg */
+        background: var(--card);               /* lighter than bg in dark, darker than bg in light */
         border-top: 1px solid var(--border);
+
+        /* make background reach viewport edges even inside .container */
+        margin-left: calc(50% - 50vw);
+        margin-right: calc(50% - 50vw);
+      }
+      .footer > * {
+        /* re-center inner content to the same width as the main container */
+        max-width: 960px;
+        margin-left: auto;
+        margin-right: auto;
+        padding-left: 16px;
+        padding-right: 16px;
       }
       .footer-nav {
         display: flex;
         gap: 16px;
         justify-content: center;
-        flex-wrap: wrap;             /* wrap nicely on narrow widths */
+        flex-wrap: wrap;
         margin-bottom: 8px;
       }
       .footer a {
-        color: #ffffff;              /* white highlighted links */
+        color: var(--text);                   /* adapts to theme */
         text-decoration: none;
         font-weight: 600;
       }
@@ -107,7 +120,7 @@
       }
       @media (max-width: 840px) {
         .footer-nav {
-          flex-direction: column;    /* vertical on mobiles */
+          flex-direction: column;             /* vertical on mobiles */
           align-items: center;
           gap: 10px;
         }
