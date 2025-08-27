@@ -35,8 +35,10 @@
         margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial;
         background: var(--bg); color: var(--text);
         -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%;
+        display: flex; flex-direction: column; /* ensures sticky footer */
+        min-height: 100vh;
       }
-      .container { max-width: 960px; margin: 0 auto; padding: 16px; }
+      .container { max-width: 960px; margin: 0 auto; padding: 16px; flex: 1 0 auto; }
       .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; }
       .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; }
       .logo { width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(135deg, var(--accent), #00c2ff); }
@@ -92,8 +94,6 @@
       .footer a:hover, .footer a:focus { text-decoration: underline; }
       .footer-copy { color: var(--muted); }
       @media (max-width: 840px) {
-        .row-3 { grid-template-columns: 1fr; }
-        .topbar { flex-wrap: wrap; }
         .footer-nav { flex-direction: column; align-items: center; gap: 10px; }
       }
 
@@ -230,18 +230,17 @@
           <p>For questions or legal notices, please use our <a href="./Support.html" target="_self">Support</a> page.</p>
         </section>
       </main>
-
-      <!-- Footer OUTSIDE the container for full width -->
-      <footer class="footer">
-        <nav class="footer-nav" aria-label="Footer">
-          <a href="./Privacy_policy.html">Privacy Policy</a>
-          <a href="./Terms_of_use.html">Terms of Use</a>
-          <a href="./FAQ.html">FAQ</a>
-          <a href="./Support.html">Support</a>
-        </nav>
-        <div class="footer-copy">© X-Ray Link</div>
-      </footer>
     </div>
+
+    <footer class="footer">
+      <nav class="footer-nav" aria-label="Footer">
+        <a href="./Privacy_policy.html">Privacy Policy</a>
+        <a href="./Terms_of_use.html">Terms of Use</a>
+        <a href="./FAQ.html">FAQ</a>
+        <a href="./Support.html">Support</a>
+      </nav>
+      <div class="footer-copy">© X-Ray Link</div>
+    </footer>
 
     <script>
       // Theme toggle
