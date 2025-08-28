@@ -68,6 +68,7 @@
       .row { display: flex; gap: 10px; flex-wrap: wrap; }
       .muted { color: var(--muted); font-size: 13px; }
       .error { color: #b91c1c; background: #fee2e2; border: 1px solid #fecaca; padding: 10px; border-radius: 8px; font-size: 13px; margin-bottom: 10px; display:none; }
+      .ok { color: #065f46; background: #d1fae5; border: 1px solid #a7f3d0; padding: 10px; border-radius: 8px; font-size: 13px; margin-bottom: 10px; display:none; }
 
       .footer { margin: 26px 0 40px; font-size: 12px; color: var(--muted); text-align: center; }
 
@@ -107,12 +108,12 @@
               </div>
               <div class="row">
                 <button class="button primary" type="submit" id="login-btn">Login</button>
-                <a class="button" href="./index.webhook.html">Back to Run</a>
+                <a class="button" href="./index.html">Back Home</a>
               </div>
             </form>
             <p class="muted" style="margin-top:12px">
               New here?
-              <button id="to-register" class="button" style="padding:6px 10px">Register now</button>
+              <button id="to-register" class="button" style="padding:6px 10px" type="button">Register now</button>
             </p>
           </div>
 
@@ -121,6 +122,7 @@
             <h2>Create account</h2>
             <p>Register with your email and a password.</p>
             <div id="reg-error" class="error"></div>
+            <div id="reg-ok" class="ok"></div>
             <form id="form-register" novalidate>
               <div class="field">
                 <label for="reg-email">Email</label>
@@ -148,104 +150,102 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-      // Theme toggle
+      // Theme toggle (unchanged)
       (function() {
-        var toggle = document.getElementById("themeToggle");
-        var root = document.documentElement;
-        var saved = localStorage.getItem("xrl-theme");
+        const toggle = document.getElementById("themeToggle");
+        const root = document.documentElement;
+        const saved = localStorage.getItem("xrl-theme");
         if (saved) {
           root.setAttribute("data-theme", saved);
           toggle.checked = saved === "light";
         }
         if (toggle) {
           toggle.addEventListener("change", function() {
-            var mode = toggle.checked ? "light" : "dark";
+            const mode = toggle.checked ? "light" : "dark";
             root.setAttribute("data-theme", mode);
             localStorage.setItem("xrl-theme", mode);
           });
         }
       })();
 
-      // View switching: Login <-> Register
+      // Views (unchanged)
       (function() {
-        var vLogin = document.getElementById("view-login");
-        var vReg   = document.getElementById("view-register");
-        var toReg  = document.getElementById("to-register");
-        var toLog  = document.getElementById("to-login");
-        if (toReg) toReg.addEventListener("click", function(){ vLogin.style.display="none"; vReg.style.display="block"; });
-        if (toLog) toLog.addEventListener("click",  function(){ vReg.style.display="none"; vLogin.style.display="block"; });
+        const vLogin = document.getElementById("view-login");
+        const vReg   = document.getElementById("view-register");
+        const toReg  = document.getElementById("to-register");
+        const toLog  = document.getElementById("to-login");
+        if (toReg) toReg.addEventListener("click", () => { vLogin.style.display="none"; vReg.style.display="block"; });
+        if (toLog) toLog.addEventListener("click", () => { vReg.style.display="none"; vLogin.style.display="block"; });
       })();
 
-      // Supabase client
+      // === Supabase client ===
       const supabase = window.supabase.createClient(
         "https://lurzlhpjxcxhuoqpbok.supabase.co",
         "sb_publishable_x0hlg96FMQ9arkjGd2F9Pw_yQ-fLI3r"
       );
 
       // Helpers
-      function showErr(el, msg){ if(!el) return; el.textContent = msg || ""; el.style.display = msg ? "block" : "none"; }
+      function show(el, msg){ if(!el) return; el.textContent = msg||""; el.style.display = msg ? "block" : "none"; }
       function disable(btn, on){ if(!btn) return; btn.disabled = !!on; }
       function validEmail(s){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s||"").trim()); }
 
       // LOGIN
       (function () {
-        var form = document.getElementById("form-login");
-        var btn  = document.getElementById("login-btn");
-        var err  = document.getElementById("login-error");
+        const form = document.getElementById("form-login");
+        const btn  = document.getElementById("login-btn");
+        const err  = document.getElementById("login-error");
         if (!form) return;
-        form.addEventListener("submit", async function(ev){
+        form.addEventListener("submit", async (ev) => {
           ev.preventDefault();
-          showErr(err, "");
-          var email = document.getElementById("login-email").value.trim();
-          var password = document.getElementById("login-pass").value;
-
-          if (!validEmail(email)) return showErr(err, "Enter a valid email.");
-          if (!password || password.length < 6) return showErr(err, "Password must be at least 6 characters.");
-
+          show(err, "");
+          const email = document.getElementById("login-email").value.trim();
+          const password = document.getElementById("login-pass").value;
+          if (!validEmail(email)) return show(err, "Enter a valid email.");
+          if (!password || password.length < 6) return show(err, "Password must be at least 6 characters.");
           disable(btn, true);
           try {
             const { data, error } = await supabase.auth.signInWithPassword({ email, password });
             disable(btn, false);
-            if (error) return showErr(err, "Invalid email or password");
-            window.location.href = "./index.webhook.html";
+            if (error) return show(err, "Invalid email or password");
+            window.location.href = "./run.html";
           } catch (e) {
             disable(btn, false);
-            showErr(err, "Failed to connect to server. Try again later.");
+            show(err, "Failed to connect to server. Try again later.");
           }
         });
       })();
 
       // REGISTER
       (function () {
-        var form = document.getElementById("form-register");
-        var btn  = document.getElementById("reg-btn");
-        var err  = document.getElementById("reg-error");
+        const form = document.getElementById("form-register");
+        const btn  = document.getElementById("reg-btn");
+        const err  = document.getElementById("reg-error");
+        const ok   = document.getElementById("reg-ok");
         if (!form) return;
-        form.addEventListener("submit", async function(ev){
+        form.addEventListener("submit", async (ev) => {
           ev.preventDefault();
-          showErr(err, "");
-          var email = document.getElementById("reg-email").value.trim();
-          var pass1 = document.getElementById("reg-pass").value;
-          var pass2 = document.getElementById("reg-pass2").value;
-
-          if (!validEmail(email)) return showErr(err, "Enter a valid email.");
-          if (!pass1 || pass1.length < 6) return showErr(err, "Password must be at least 6 characters.");
-          if (pass1 !== pass2) return showErr(err, "Passwords do not match.");
-
+          show(err, ""); show(ok, "");
+          const email = document.getElementById("reg-email").value.trim();
+          const pass1 = document.getElementById("reg-pass").value;
+          const pass2 = document.getElementById("reg-pass2").value;
+          if (!validEmail(email)) return show(err, "Enter a valid email.");
+          if (!pass1 || pass1.length < 6) return show(err, "Password must be at least 6 characters.");
+          if (pass1 !== pass2) return show(err, "Passwords do not match.");
           disable(btn, true);
           try {
-            const { data, error } = await supabase.auth.signUp(
-              { email, password: pass1 },
-              { emailRedirectTo: "https://xraylink.ai/verify.html" }
-            );
+            const { data, error } = await supabase.auth.signUp({
+              email,
+              password: pass1,
+              options: { emailRedirectTo: "https://xraylink.ai/verify.html" }
+            });
             disable(btn, false);
-            if (error) return showErr(err, error.message);
+            if (error) return show(err, error.message);
             alert("Check your inbox to confirm your email.");
             document.getElementById("view-register").style.display = "none";
             document.getElementById("view-login").style.display = "block";
           } catch (e) {
             disable(btn, false);
-            showErr(err, "Failed to connect to server. Try again later.");
+            show(err, "Failed to connect to server. Try again later.");
           }
         });
       })();
