@@ -256,18 +256,9 @@
               return show(err, /already/i.test(error.message) ? "Email already in use" : "Registration failed: " + error.message);
             }
 
-            // Attempt auto-login
-            const { loginData, loginError } = await supabase.auth.signInWithPassword({ email, password: pass1 });
-            if (loginError) {
-              console.log("Auto-login error details:", loginError);
-              show(ok, "Registration successful! Check your email for a verification link, then log in.");
-              document.getElementById("view-register").style.display = "none";
-              document.getElementById("view-login").style.display = "block";
-              return;
-            }
-
-            show(ok, "Registration successful! Redirecting...");
-            setTimeout(() => window.location.href = "./run.html", 2000);
+            // ✅ No auto-login or redirect on successful registration.
+            //    Show a clear instruction to verify email instead.
+            show(ok, "Registration successful! Please check your inbox and verify your email to activate your account. After verification, return here to log in.");
           } catch (e) {
             disable(btn, false);
             console.error("Registration network error:", e);
