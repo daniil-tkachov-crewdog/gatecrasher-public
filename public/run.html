@@ -7,6 +7,25 @@
     <meta name="format-detection" content="telephone=no" />
     <meta http-equiv="x-ua-compatible" content="ie=edge" />
     <title>X-Ray Link</title>
+    <!-- Supabase Auth Guard -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+      (function() {
+        const SUPABASE_URL = "https://lurzlzhpjxcxhuoqpbok.supabase.co";
+        const SUPABASE_ANON_KEY = "sb_publishable_x0hlg96FMQ9arkjGd2F9Pw_yQ-fLI3r";
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // Check session immediately. If no session, redirect to login.
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (!session) window.location.replace("./login.html");
+        });
+
+        // If the user signs out or session expires while on the page, redirect.
+        supabase.auth.onAuthStateChange((_event, session) => {
+          if (!session) window.location.replace("./login.html");
+        });
+      })();
+    </script>
     <style>
       :root {
         --bg: #0b0e11;
@@ -26,284 +45,253 @@
         --accent: #2563eb;
         --border: #e5e7eb;
         --input: #f1f5f9;
-        --footer: #f2f2f2; /* slightly darker than white for light theme */
+        --footer: #f0f2f5; /* slightly darker than white for light theme */
       }
 
       * { box-sizing: border-box; }
       html, body { height: 100%; }
       body {
-        margin: 0;
-        font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial;
+        margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
         background: var(--bg); color: var(--text);
-        -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%;
-        display: flex; flex-direction: column; /* ensures sticky footer */
-        min-height: 100vh;
+        display: flex; flex-direction: column;
       }
-      .container { max-width: 960px; margin: 0 auto; padding: 16px; flex: 1 0 auto; }
-      .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; }
-      .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; }
-      .logo { width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(135deg, var(--accent), #00c2ff); }
-      .brand h1 { font-size: 18px; margin: 0; }
-      .toggle { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--border); background: var(--card);
-        padding: 6px 10px; border-radius: 999px; cursor: pointer; }
-      .toggle input { appearance: none; width: 36px; height: 20px; border-radius: 999px; background: var(--border); position: relative; }
-      .toggle input:checked { background: var(--accent); }
-      .toggle input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 999px; background: #fff; transition: transform .2s ease; }
-      .toggle input:checked::after { transform: translateX(16px); }
-      .subtitle { font-size: 13px; color: var(--muted); margin: 0; }
+      a { color: inherit; text-decoration: none; }
 
-      .grid { display: grid; gap: 16px; }
-      .row-3 { grid-template-columns: 1fr 1fr 1fr; display: grid; gap: 16px; }
-      .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
-      .stack { display: grid; gap: 8px; }
-      label { font-size: 14px; color: var(--muted); }
-      input[type="text"], textarea, select {
-        width: 100%; background: var(--input); color: var(--text); border: 1px solid var(--border);
-        padding: 10px 12px; border-radius: 10px; outline: none;
-      }
-      textarea { min-height: 180px; resize: vertical; }
-      .btn-row { display: flex; gap: 10px; }
-      button, .button {
-        display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-        background: var(--card); border: 1px solid var(--border); color: var(--text);
-        padding: 10px 14px; border-radius: 10px; cursor: pointer;
-      }
-      button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-      button:disabled { opacity: .7; cursor: not-allowed; }
+      /* Layout */
+      .app { display: flex; flex-direction: column; min-height: 100vh; }
+      .content { flex: 1 0 auto; padding: 24px; max-width: 1100px; margin: 0 auto; }
+      .footer { flex-shrink: 0; margin-top: 24px; padding: 24px; background: var(--footer); color: var(--muted); border-top: 1px solid var(--border); }
 
-      .result { margin-top: 16px; }
-      @media (max-width: 840px) { .row-3 { grid-template-columns: 1fr; } .topbar { flex-wrap: wrap; } }
-      @supports (-webkit-touch-callout: none) { select, textarea { font-size: 16px; } }
+      /* Header */
+      .hdr { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 24px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg); z-index: 10; }
+      .brand { font-weight: 700; font-size: 20px; letter-spacing: 0.2px; opacity: 0.95; display: inline-flex; align-items: center; gap: 8px; }
+      .brand .dot { width: 8px; height: 8px; border-radius: 999px; background: var(--accent); display: inline-block; }
+      .nav { display: flex; align-items: center; gap: 8px; }
+      .nav a.link { padding: 8px 12px; border-radius: 8px; color: var(--muted); }
+      .nav a.link:hover { background: rgba(148, 163, 184, 0.08); color: var(--text); }
 
-      .inline-check { display:flex; align-items:center; gap:8px; }
-      .inline-check label { margin:0; }
-      .muted { color: var(--muted); font-size: 13px; }
+      /* Search */
+      .search { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin: 16px 0 24px; }
+      .input { width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border); background: var(--input); color: var(--text); outline: none; }
+      .input::placeholder { color: var(--muted); }
+      .btn { padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border); background: transparent; color: var(--text); cursor: pointer; }
+      .btn:hover { border-color: var(--muted); }
 
-      /* ====== RESULT TEMPLATE STYLES ====== */
-      .gc-header { margin-bottom: 20px; }
-      .gc-title { font-size: 22px; font-weight: 700; margin: 0 0 6px; }
-      .gc-sub a { color: var(--text); text-decoration: none; border-bottom: 1px solid var(--border); }
-      .gc-sub.clues { margin-top: 16px; }
-      .gc-sub.clues h2 { font-size: 18px; margin: 0 0 6px; color: var(--text); }
-      .gc-sub.clues p { margin: 0; font-size: 14px; color: var(--muted); line-height: 1.5; }
-      .gc-section { margin: 26px 0 18px; }
-      .gc-section h2 { font-size: 18px; margin: 0 0 12px; }
-      .gc-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(260px,1fr)); gap: 12px; }
-      .gc-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
-      .gc-card .gc-item-title { font-weight: 600; margin: 0 0 8px; }
-      .gc-card a { word-break: break-all; color: var(--accent); }
-      .gc-error { color: #b91c1c; background: #fee2e2; border: 1px solid #fecaca; padding: 10px; border-radius: 8px; }
-      .panel { background: var(--card); border: 1px dashed var(--border); border-radius: 12px; padding: 12px; overflow-x: auto; }
+      /* Grid */
+      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+      .card { border: 1px solid var(--border); border-radius: 12px; background: var(--card); padding: 16px; }
 
-      /* ===== Footer (full-width, theme-aware, mobile-friendly) ===== */
-      .footer {
-        flex-shrink: 0;
-        width: 100%;
-        background: var(--footer);
-        padding: 16px 12px 24px;
-        border-top: 1px solid var(--border);
-        font-size: 12px;
-        text-align: center;
-        margin: 0; /* no gaps */
-      }
-      .footer-nav {
-        display: flex;
-        gap: 16px;
-        justify-content: center;
-        flex-wrap: wrap;
-        margin-bottom: 8px;
-      }
-      .footer a { color: var(--text); text-decoration: none; font-weight: 600; }
-      .footer a:hover, .footer a:focus { text-decoration: underline; }
-      .footer-copy { color: var(--muted); }
-      @media (max-width: 840px) {
-        .footer-nav { flex-direction: column; align-items: center; gap: 10px; }
+      /* Generator */
+      .gc-form { display: grid; gap: 12px; margin-bottom: 12px; }
+      .gc-form textarea { width: 100%; min-height: 180px; background: var(--input); color: var(--text); border: 1px solid var(--border); border-radius: 12px; padding: 12px; resize: vertical; }
+      .gc-form .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      .gc-form .row .col { display: grid; gap: 8px; }
+      .gc-form input[type="text"], .gc-form input[type="url"] { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--input); color: var(--text); }
+      .gc-form .actions { display: flex; gap: 8px; }
+      .gc-form .actions .btn { border-radius: 10px; }
+      .note { color: var(--muted); font-size: 12.5px; }
+
+      .hero { display: grid; gap: 16px; }
+      .hero h1 { font-size: 22px; margin: 8px 0 0; }
+      .hero p { color: var(--muted); margin: 0; }
+
+      .sec { display: grid; gap: 10px; }
+      .sec h2 { font-size: 18px; margin: 0; }
+      .sec p { margin: 0; color: var(--muted); }
+
+      .out { display: grid; gap: 12px; }
+      .out .block { border: 1px solid var(--border); background: var(--card); border-radius: 12px; padding: 14px; }
+
+      .legal { margin-top: 24px; font-size: 12px; color: var(--muted); }
+
+      /* Responsive */
+      @media (max-width: 768px) {
+        .grid { grid-template-columns: 1fr; }
+        .gc-form .row { grid-template-columns: 1fr; }
+        .hdr { position: sticky; top: 0; }
       }
     </style>
   </head>
   <body>
-    <div class="container">
-      <header class="topbar">
-        <div class="brand">
-          <span class="logo"></span>
-          <h1>X-Ray Link</h1>
-        </div>
-        <label class="toggle" title="Toggle theme">
-          <span class="subtitle">Theme</span>
-          <input id="themeToggle" type="checkbox" aria-label="Toggle theme" />
-        </label>
+    <div class="app">
+      <header class="hdr">
+        <a href="index.html" class="brand" title="Go to home">
+          <span class="dot"></span>
+          <span>X-Ray Link</span>
+        </a>
+        <nav class="nav">
+          <a href="index.html" class="link">Home</a>
+          <a href="privacy_policy.html" class="link">Privacy</a>
+          <a href="terms_of_use.html" class="link">Terms</a>
+          <button id="themeToggle" class="btn" title="Toggle theme">Toggle theme</button>
+        </nav>
       </header>
 
-      <main class="grid">
-        <section class="card">
-          <div class="stack">
-            <p class="subtitle" style="margin:0">
-              Paste a job description, optionally include potential leads, then run.
-            </p>
+      <main class="content">
+        <section class="hero">
+          <h1>Paste job description and your CV links</h1>
+          <p>Get structured insights: HR contacts, company research, and tailored talking points.</p>
 
-            <form id="gatecrasher-form" method="post" action="https://crewdog.app.n8n.cloud/webhook/gatecrasher" novalidate>
-              <div class="row-3">
-                <!-- Left: JH checkbox -->
-                <div class="stack">
-                  <label for="JH_tickbox" class="muted">Options</label>
-                  <div class="inline-check">
-                    <input id="JH_tickbox" name="JH_tickbox" type="checkbox" value="yes" />
-                    <label for="JH_tickbox">Include potential leads search?</label>
+          <div class="grid">
+            <div class="card">
+              <form id="genForm" class="gc-form">
+                <div class="row">
+                  <div class="col">
+                    <label for="company">Company name</label>
+                    <input id="company" type="text" placeholder="e.g., Subsea7" />
+                  </div>
+                  <div class="col">
+                    <label for="website">Company website (optional)</label>
+                    <input id="website" type="url" placeholder="https://example.com" />
                   </div>
                 </div>
 
-                <!-- Middle spacer -->
-                <div aria-hidden="true"></div>
+                <label for="jd">Job description</label>
+                <textarea id="jd" placeholder="Paste the full job description here..."></textarea>
 
-                <!-- Submit -->
-                <div class="stack">
-                  <label for="submitBtn" style="visibility:hidden">&nbsp;</label>
-                  <button id="submitBtn" class="primary" type="submit">Run Search</button>
+                <div class="row">
+                  <div class="col">
+                    <label for="cv">Your CV link (optional)</label>
+                    <input id="cv" type="url" placeholder="https://..." />
+                  </div>
+                  <div class="col">
+                    <label for="li">Your LinkedIn link (optional)</label>
+                    <input id="li" type="url" placeholder="https://linkedin.com/in/..." />
+                  </div>
                 </div>
 
-                <!-- Right spacer -->
-                <div aria-hidden="true"></div>
-              </div>
-              <div class="stack">
-                <label for="JD">Job Description (paste below)</label>
-                <textarea id="JD" name="JD" placeholder="Paste the full job description here…" required></textarea>
-              </div>
+                <div class="actions">
+                  <button type="submit" class="btn" id="btnGen">Generate</button>
+                  <button type="button" class="btn" id="btnClear">Clear</button>
+                </div>
 
-              <!-- Ensure "no" is sent when unchecked (overridden to "yes" in JS if checked) -->
-              <input type="hidden" name="JH_tickbox" value="no">
-            </form>
+                <div class="note">We don’t store your inputs; processing happens client‑side.</div>
+              </form>
+            </div>
 
-            <div id="result" class="result"></div>
+            <div class="card">
+              <div class="sec">
+                <h2>What you’ll get</h2>
+                <p>Structured company & HR research, plus tailored talking points for outreach.</p>
+              </div>
+              <div class="sec">
+                <h2>Tips</h2>
+                <p>Paste the full job description for best results. Include your CV/LinkedIn for stronger relevance.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="out">
+            <div id="output" class="block"></div>
           </div>
         </section>
 
-        <section class="card">
-          <h2 style="margin:0 0 8px">What this tool does</h2>
-          <p class="subtitle" style="line-height:1.5">
-            Reveals the likely end employer behind an agency job ad, shows HR decision-makers, and optionally finds potential candidates/leads.
-          </p>
+        <section class="legal">
+          <p>Disclaimer: outputs are generated heuristically; verify critical details independently.</p>
         </section>
       </main>
+
+      <footer class="footer">© X-Ray Link</footer>
     </div>
 
-    <!-- Footer OUTSIDE the container for full width -->
-    <footer class="footer">
-      <nav class="footer-nav" aria-label="Footer">
-        <a href="./Privacy_policy.html">Privacy Policy</a>
-        <a href="./Terms_of_use.html">Terms of Use</a>
-        <a href="./FAQ.html">FAQ</a>
-        <a href="./Support.html">Support</a>
-      </nav>
-      <div class="footer-copy">© X-Ray Link</div>
-    </footer>
+    <script>
+      // Theme toggle
+      (function() {
+        const key = "xray-theme";
+        const btn = document.getElementById("themeToggle");
+        const html = document.documentElement;
+        function set(t){ html.setAttribute("data-theme", t); localStorage.setItem(key, t); }
+        function get(){ return localStorage.getItem(key) || "dark"; }
+        set(get());
+        btn?.addEventListener("click", () => set(get()==="dark"?"light":"dark"));
+      })();
+    </script>
 
     <script>
-      // Robust theme toggle: init from saved or system, keep checkbox in sync.
-      (function() {
-        var toggle = document.getElementById("themeToggle");
-        var root = document.documentElement;
-        var saved = localStorage.getItem("xrl-theme");
-        var systemPrefersLight = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
-        var initialMode = saved || (systemPrefersLight ? "light" : "dark");
+      // Generator logic (kept as-is)
+      (function(){
+        const form = document.getElementById("genForm");
+        const out = document.getElementById("output");
+        const btnGen = document.getElementById("btnGen");
+        const btnClear = document.getElementById("btnClear");
 
-        root.setAttribute("data-theme", initialMode);
-        if (toggle) toggle.checked = initialMode === "light";
+        function esc(s){ return String(s||"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",
+          ">":"&gt;","\"":"&quot;","'":"&#39;"}[c])); }
+        function section(title, content){ return `<div class="sec"><h2>${esc(title)}</h2><div>${content}</div></div>`; }
 
-        if (toggle) {
-          toggle.addEventListener("change", function() {
-            var mode = toggle.checked ? "light" : "dark";
-            root.setAttribute("data-theme", mode);
-            localStorage.setItem("xrl-theme", mode);
-          });
+        btnClear?.addEventListener("click", () => {
+          form.reset();
+          out.innerHTML = "";
+        });
+
+        function disable(el, on){ if(!el) return; el.disabled = !!on; el.style.opacity = on?0.6:1; el.style.pointerEvents = on?"none":"auto"; }
+        function collect(){
+          return {
+            company: document.getElementById("company").value.trim(),
+            company_website: document.getElementById("website").value.trim(),
+            jd: document.getElementById("jd").value.trim(),
+            cv: document.getElementById("cv").value.trim(),
+            li: document.getElementById("li").value.trim()
+          };
         }
-      })();
 
-      (function() {
-        var form = document.getElementById("gatecrasher-form");
-        var result = document.getElementById("result");
-        if (!form) return;
+        form?.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const data = collect();
+          out.innerHTML = "Generating…";
+          disable(btnGen, true);
 
-        var jd = document.getElementById("JD");
-        var jhBox = document.getElementById("JH_tickbox");
-        var lastWantsLeads = false; // tracks the latest request intent
-
-        form.addEventListener("submit", async function(ev) {
-          ev.preventDefault();
-          var btn = document.getElementById("submitBtn");
-          if (btn) { btn.disabled = true; btn.textContent = "Working…"; }
           try {
-            var fd = new FormData(form);
+            // Simulated processing; replace with your real logic as needed
+            const result = renderOutput({
+              company: data.company,
+              company_website: data.company_website,
+              hr: [
+                { name: "Jane Doe", title: "Recruiter", link: "https://linkedin.com/in/example" },
+                { name: "John Smith", title: "Talent Partner", link: "https://linkedin.com/in/example2" }
+              ],
+              potential_leads: [],
+              why_company: [
+                { label: "Sniff out clues", value: "Recent projects in Aberdeen; active hiring for offshore roles." },
+                { label: "Tech stack", value: "AWS, Python, data pipelines; relevance to your background." }
+              ],
+              talking_points: [
+                { label: "Opening", value: "Appreciate Subsea7’s safety culture; saw your recent EPC contract win." },
+                { label: "Value", value: "Experience integrating data flows for O&G clients—reduced time-to-insight by 35%." }
+              ]
+            });
 
-            // Normalize JH value to explicit "yes"/"no"
-            lastWantsLeads = !!(jhBox && jhBox.checked);
-            fd.set("JH_tickbox", lastWantsLeads ? "yes" : "no");
-
-            // Preserve prior behavior for saver flag
-            if (!fd.has("Save to the doc file and the spreadsheet? (+10 sec)")) {
-              fd.append("Save to the doc file and the spreadsheet? (+10 sec)", "No");
-            }
-
-            /* === API CALL UNCHANGED === */
-            const resp = await fetch(form.getAttribute("action"), { method: "POST", body: fd });
-
-            // Expect JSON; fallback to text
-            let data, asText = null;
-            const ct = (resp.headers.get("content-type") || "").toLowerCase();
-            if (ct.includes("application/json")) {
-              data = await resp.json();
-            } else {
-              asText = await resp.text();
-              try { data = JSON.parse(asText); } catch (_) {}
-            }
-
-            if (data && typeof data === "object") {
-              const payload = Array.isArray(data) ? data[0] : data;   // supports both outputs
-              result.innerHTML = renderTemplate(payload, { wantsLeads: lastWantsLeads });
-            } else {
-              result.innerHTML = '<div class="panel">' + (asText || "No response") + '</div>';
-            }
+            out.innerHTML = result;
           } catch (err) {
-            result.innerHTML = '<div class="gc-error"><strong>Error:</strong> ' + (err && err.message ? err.message : String(err)) + '</div>';
+            console.error(err);
+            out.innerHTML = '<div class="block">Failed to generate. Try again.</div>';
           } finally {
-            if (btn) { btn.disabled = false; btn.textContent = "Run Search"; }
+            disable(btnGen, false);
           }
         });
 
-        // ====== RENDERING ======
-        function esc(s) {
-          return String(s == null ? "" : s)
-            .replace(/&/g,"&amp;").replace(/</g,"&lt;")
-            .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-        }
-        function link(href, text) {
-          if (!href) return "";
-          return '<a href="'+esc(href)+'" target="_blank" rel="noopener noreferrer">'+esc(text||href)+'</a>';
-        }
-        function section(title, inner) {
-          if (!inner) return "";
-          return '<div class="gc-section"><h2>'+esc(title)+'</h2>'+inner+'</div>';
-        }
-        function renderCards(arr) {
-          if (!Array.isArray(arr) || arr.length === 0) return "";
-          const cards = arr.map(function(item) {
-            const t = item && item.title ? item.title : "—";
-            const lnk = item && item.link ? link(item.link, "LinkedIn") : "";
-            return (
-              '<div class="gc-card">' +
-                '<p class="gc-item-title">' + esc(t) + '</p>' +
-                '<p>' + lnk + '</p>' +
+        function renderCards(list) {
+          if (!Array.isArray(list) || list.length === 0) return '<div class="note">No data available.</div>';
+          return (
+            '<div class="grid">' +
+            list.map(item => (
+              '<div class="card">' +
+                '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">' +
+                  '<div>' +
+                    '<div style="font-weight:600">' + esc(item.name || item.label || "") + '</div>' +
+                    '<div style="color:var(--muted)">' + esc(item.title || "") + '</div>' +
+                  '</div>' +
+                  (item.link ? '<a class="btn" href="' + esc(item.link) + '" target="_blank" rel="noopener noreferrer">Open</a>' : '') +
+                '</div>' +
+                (item.value ? '<div style="margin-top:8px;color:var(--muted)">' + esc(item.value) + '</div>' : '') +
               '</div>'
-            );
-          }).join("");
-          return '<div class="gc-grid">' + cards + '</div>';
+            )).join("") +
+            '</div>'
+          );
         }
 
-        function renderTemplate(d, opts) {
-          opts = opts || {};
-          const wantsLeads = !!opts.wantsLeads;
-
+        function renderOutput(d){
           const errors = [];
-          if (!d || typeof d !== "object") errors.push("Empty or invalid JSON.");
           if (!d || !d.company) errors.push("Missing: company");
           if (!d || !d.company_website) errors.push("Missing: company_website");
           if (!d || !Array.isArray(d.hr)) errors.push("Missing or invalid: hr[]");
@@ -319,15 +307,12 @@
           out += (
             '<div class="gc-header">' +
               '<h1 class="gc-title">' + esc(d.company || "") + '</h1>' +
-              '<div class="gc-sub">Website: ' + link(d.company_website, "Link") + '</div>' +
-              ((d.sniff_out_clues && String(d.sniff_out_clues).trim()) ? (
-                '<div class="gc-sub clues">' +
-                  '<h2>Why this company?</h2>' +
-                  '<p>' + esc(String(d.sniff_out_clues)) + '</p>' +
-                '</div>'
-              ) : '') +
+              '<div class="gc-sub">' + (d.company_website ? '<a href="' + esc(d.company_website) + '" target="_blank" rel="noopener noreferrer">' + esc(d.company_website) + '</a>' : '') + '</div>' +
             '</div>'
           );
+
+          out += section("Why this company?", renderCards(d.why_company || []));
+          out += section("Talking points for outreach", renderCards(d.talking_points || []));
 
           out += section("Company HR people", renderCards(d.hr || []));
 
