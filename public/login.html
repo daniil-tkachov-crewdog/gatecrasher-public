@@ -148,7 +148,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-      // Theme toggle (match existing pages) — uses localStorage "xrl-theme".
+      // Theme toggle
       (function() {
         var toggle = document.getElementById("themeToggle");
         var root = document.documentElement;
@@ -172,12 +172,11 @@
         var vReg   = document.getElementById("view-register");
         var toReg  = document.getElementById("to-register");
         var toLog  = document.getElementById("to-login");
-
         if (toReg) toReg.addEventListener("click", function(){ vLogin.style.display="none"; vReg.style.display="block"; });
         if (toLog) toLog.addEventListener("click",  function(){ vReg.style.display="none"; vLogin.style.display="block"; });
       })();
 
-      // === Supabase client ===
+      // Supabase client
       const supabase = window.supabase.createClient(
         "https://lurzlhpjxcxhuoqpbok.supabase.co",
         "sb_publishable_x0hlg96FMQ9arkjGd2F9Pw_yQ-fLI3r"
@@ -193,7 +192,6 @@
         var form = document.getElementById("form-login");
         var btn  = document.getElementById("login-btn");
         var err  = document.getElementById("login-error");
-
         if (!form) return;
         form.addEventListener("submit", async function(ev){
           ev.preventDefault();
@@ -222,7 +220,6 @@
         var form = document.getElementById("form-register");
         var btn  = document.getElementById("reg-btn");
         var err  = document.getElementById("reg-error");
-
         if (!form) return;
         form.addEventListener("submit", async function(ev){
           ev.preventDefault();
@@ -239,7 +236,7 @@
           try {
             const { data, error } = await supabase.auth.signUp(
               { email, password: pass1 },
-              { emailRedirectTo: "https://xraylink.ai/verify.html" } // added redirect
+              { emailRedirectTo: "https://xraylink.ai/verify.html" }
             );
             disable(btn, false);
             if (error) return showErr(err, error.message);
