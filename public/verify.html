@@ -1,24 +1,14 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="color-scheme" content="dark light" />
+    <meta name="color-scheme" content="light" />
     <meta name="format-detection" content="telephone=no" />
     <meta http-equiv="x-ua-compatible" content="ie=edge" />
     <title>X-Ray Link — Email Verified</title>
     <style>
       :root {
-        --bg: #0b0e11;
-        --card: #12161c;
-        --text: #e6eaf2;
-        --muted: #94a3b8;
-        --accent: #3b82f6;
-        --border: #1f2937;
-        --input: #0f172a;
-        --footer: #151a1f;
-      }
-      html[data-theme="light"] {
         --bg: #ffffff;
         --card: #f7f8fa;
         --text: #0f172a;
@@ -43,15 +33,9 @@
       .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; }
       .logo { width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(135deg, var(--accent), #00c2ff); }
       .brand h1 { font-size: 18px; margin: 0; }
-      .toggle { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--border); background: var(--card);
-        padding: 6px 10px; border-radius: 999px; cursor: pointer; }
-      .toggle input { appearance: none; width: 36px; height: 20px; border-radius: 999px; background: var(--border); position: relative; }
-      .toggle input:checked { background: var(--accent); }
-      .toggle input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 999px; background: #fff; transition: transform .2s ease; }
-      .toggle input:checked::after { transform: translateX(16px); }
       .subtitle { font-size: 13px; color: var(--muted); margin: 0; }
 
-      /* Centered card like run.html */
+      /* Centered card */
       .center-wrap { display: grid; place-items: center; padding: 32px 0 40px; }
       .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; width: 100%; max-width: 560px; text-align: center; }
       .card h2 { margin: 0 0 8px; font-size: 22px; }
@@ -65,10 +49,8 @@
         min-width: 140px;
       }
       .button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-      .button.white   { background: #fff; color: #111; border-color: var(--border); }
-      html[data-theme="dark"] .button.white { background: #fff; color: #111; }
 
-      /* Footer (same style as updated run.html) */
+      /* Footer */
       .footer {
         flex-shrink: 0;
         width: 100%;
@@ -83,6 +65,13 @@
       .footer a { color: var(--text); text-decoration: none; font-weight: 600; }
       .footer a:hover, .footer a:focus { text-decoration: underline; }
       .footer-copy { color: var(--muted); }
+
+      /* Success banner */
+      .success-banner { 
+        display: flex; align-items: center; gap: 10px; justify-content: center; 
+        background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; 
+        padding: 10px 12px; border-radius: 10px; margin-bottom: 12px; font-weight: 600; 
+      }
     </style>
   </head>
   <body>
@@ -92,19 +81,15 @@
           <span class="logo"></span>
           <h1>X-Ray Link</h1>
         </div>
-        <label class="toggle" title="Toggle theme">
-          <span class="subtitle">Theme</span>
-          <input id="themeToggle" type="checkbox" aria-label="Toggle theme" />
-        </label>
       </header>
 
       <main class="center-wrap">
-        <section class="card" aria-live="polite">
-          <h2>Email confirmed</h2>
+        <section class="card" aria-live="polite" id="success-section" style="display:block">
+          <div class="success-banner">✓ Email verified successfully</div>
+          <h2>You're all set</h2>
           <p>Your sign-in email has been verified. You can continue.</p>
           <div class="row" style="margin-top:10px">
             <a class="button primary" href="./run.html">Go to Run</a>
-            <a class="button white"   href="./index.html">Go to Home</a>
           </div>
           <p id="err" style="display:none; margin-top:14px; color:#b91c1c; background:#fee2e2; border:1px solid #fecaca; padding:10px; border-radius:8px; font-size:13px;"></p>
         </section>
@@ -125,20 +110,25 @@
     <script type="module">
       import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-      // your project credentials (from previous messages)
       const supabase = createClient(
-        'https://lurzlhpjxcxhuoqpbok.supabase.co',
+        'https://lurzlzhpjxcxhuoqpbok.supabase.co',
         'sb_publishable_x0hlg96FMQ9arkjGd2F9Pw_yQ-fLI3r'
       );
 
-      // Finish verification using the tokens in the URL:
+      // Keep verification logic; the message is shown by default for preview
       (async () => {
         try {
-          // v2 helper: reads tokens from URL and creates the session
-          const { data, error } = await supabase.auth.getSessionFromUrl({ storeSession: true });
+          const hash = window.location.hash.substring(1);
+          const params = new URLSearchParams(hash);
+          const access_token = params.get('access_token');
+          const refresh_token = params.get('refresh_token');
+          const type = params.get('type');
+
+          if (!access_token || !refresh_token || type !== 'signup') return;
+
+          const { error } = await supabase.auth.setSession({ access_token, refresh_token });
           if (error) throw error;
 
-          // Clean the URL (remove tokens from hash) to keep it neat
           if (window.history.replaceState) {
             const clean = window.location.origin + window.location.pathname;
             window.history.replaceState({}, document.title, clean);
@@ -151,25 +141,6 @@
           }
         }
       })();
-
-      // Theme toggle (same behavior as run.html)
-      (function() {
-        var toggle = document.getElementById("themeToggle");
-        var root = document.documentElement;
-        var saved = localStorage.getItem("xrl-theme");
-        var systemPrefersLight = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
-        var initialMode = saved || (systemPrefersLight ? "light" : "dark");
-        root.setAttribute("data-theme", initialMode);
-        if (toggle) toggle.checked = initialMode === "light";
-        if (toggle) {
-          toggle.addEventListener("change", function() {
-            var mode = toggle.checked ? "light" : "dark";
-            root.setAttribute("data-theme", mode);
-            localStorage.setItem("xrl-theme", mode);
-          });
-        }
-      })();
     </script>
   </body>
 </html>
-
