@@ -47,7 +47,6 @@
       .toggle input:checked::after { transform: translateX(16px); }
       .subtitle { font-size: 13px; color: var(--muted); margin: 0; }
 
-      /* Centered auth block */
       .center-wrap { flex: 1 1 auto; display: grid; place-items: center; padding: 16px 0 32px; }
       .auth-card { width: 100%; max-width: 420px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
       .auth-card h2 { margin: 0 0 8px; font-size: 22px; }
@@ -77,7 +76,6 @@
   </head>
   <body>
     <div class="container">
-      <!-- Top bar -->
       <header class="topbar">
         <div class="brand">
           <span class="logo"></span>
@@ -89,7 +87,6 @@
         </label>
       </header>
 
-      <!-- Centered login/registration -->
       <main class="center-wrap">
         <section class="auth-card" aria-live="polite">
           <!-- LOGIN VIEW -->
@@ -148,6 +145,7 @@
       <footer class="footer">© X-Ray Link</footer>
     </div>
 
+    <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
       // Theme toggle (unchanged)
@@ -180,11 +178,11 @@
 
       // === Supabase client ===
       const supabase = window.supabase.createClient(
-        "https://lurzlhpjxcxhuoqpbok.supabase.co",
-        "sb_publishable_x0hlg96FMQ9arkjGd2F9Pw_yQ-fLI3r"
+        "https://lurzlzhpjxcxhuoqpbok.supabase.co", // Updated to match your provided URL
+        "sb_publishable_x0hlg96FMQ9arkjGd2F9Pw_yQ-fLI3r" // Verify this anon key matches the new project
       );
 
-      // Helpers
+      // Helpers (unchanged)
       function show(el, msg){ if(!el) return; el.textContent = msg||""; el.style.display = msg ? "block" : "none"; }
       function disable(btn, on){ if(!btn) return; btn.disabled = !!on; }
       function validEmail(s){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s||"").trim()); }
@@ -194,23 +192,31 @@
         const form = document.getElementById("form-login");
         const btn  = document.getElementById("login-btn");
         const err  = document.getElementById("login-error");
+
         if (!form) return;
         form.addEventListener("submit", async (ev) => {
           ev.preventDefault();
           show(err, "");
           const email = document.getElementById("login-email").value.trim();
           const password = document.getElementById("login-pass").value;
+
           if (!validEmail(email)) return show(err, "Enter a valid email.");
           if (!password || password.length < 6) return show(err, "Password must be at least 6 characters.");
+
           disable(btn, true);
           try {
             const { data, error } = await supabase.auth.signInWithPassword({ email, password });
             disable(btn, false);
-            if (error) return show(err, "Invalid email or password");
+
+            if (error) {
+              console.log("Login error details:", error);
+              return show(err, "Invalid email or password");
+            }
             window.location.href = "./run.html";
           } catch (e) {
             disable(btn, false);
-            show(err, "Failed to connect to server. Try again later.");
+            console.error("Login network error:", e);
+            show(err, "Failed to connect to server. Check your internet or try again later.");
           }
         });
       })();
@@ -221,6 +227,7 @@
         const btn  = document.getElementById("reg-btn");
         const err  = document.getElementById("reg-error");
         const ok   = document.getElementById("reg-ok");
+
         if (!form) return;
         form.addEventListener("submit", async (ev) => {
           ev.preventDefault();
@@ -228,24 +235,43 @@
           const email = document.getElementById("reg-email").value.trim();
           const pass1 = document.getElementById("reg-pass").value;
           const pass2 = document.getElementById("reg-pass2").value;
+
           if (!validEmail(email)) return show(err, "Enter a valid email.");
           if (!pass1 || pass1.length < 6) return show(err, "Password must be at least 6 characters.");
           if (pass1 !== pass2) return show(err, "Passwords do not match.");
+
           disable(btn, true);
           try {
             const { data, error } = await supabase.auth.signUp({
               email,
               password: pass1,
-              options: { emailRedirectTo: "https://xraylink.ai/verify.html" }
+              options: {
+                emailRedirectTo: 'https://xraylink.ai/verify.html'
+              }
             });
             disable(btn, false);
-            if (error) return show(err, error.message);
-            alert("Check your inbox to confirm your email.");
-            document.getElementById("view-register").style.display = "none";
-            document.getElementById("view-login").style.display = "block";
+
+            if (error) {
+              console.log("Registration error details:", error);
+              return show(err, /already/i.test(error.message) ? "Email already in use" : "Registration failed: " + error.message);
+            }
+
+            // Attempt auto-login
+            const { loginData, loginError } = await supabase.auth.signInWithPassword({ email, password: pass1 });
+            if (loginError) {
+              console.log("Auto-login error details:", loginError);
+              show(ok, "Registration successful! Check your email for a verification link, then log in.");
+              document.getElementById("view-register").style.display = "none";
+              document.getElementById("view-login").style.display = "block";
+              return;
+            }
+
+            show(ok, "Registration successful! Redirecting...");
+            setTimeout(() => window.location.href = "./run.html", 2000);
           } catch (e) {
             disable(btn, false);
-            show(err, "Failed to connect to server. Try again later.");
+            console.error("Registration network error:", e);
+            show(err, "Failed to connect to server. Check your internet or try again later.");
           }
         });
       })();
