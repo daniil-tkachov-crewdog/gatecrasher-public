@@ -368,11 +368,15 @@
         // Persisted “pending email” marker so we can keep showing the notice until confirmed
         var PENDING_KEY = "xrl-pending-email";
         var pendingEmail = null;
+        var pollTimer = null;
         try { pendingEmail = localStorage.getItem(PENDING_KEY) || null; } catch(e){}
 
-        if (pendingEmail) show(noticePending, true);
+        if (pendingEmail) {
+          show(noticePending, true);
+          startPendingPoll();
+        }
 
-        // Optional lightweight check: if current user email matches pendingEmail, clear the notice
+        // Poll until Supabase user email equals pendingEmail, then update UI and clear state
         async function checkEmailConfirmed(){
           try{
             if (!supabase || !pendingEmail) return;
@@ -380,10 +384,19 @@
             if (user && user.email && user.email.toLowerCase() === pendingEmail.toLowerCase()) {
               try { localStorage.removeItem(PENDING_KEY); } catch(e){}
               show(noticePending, false);
+              if (emailEl) emailEl.value = user.email; // update General section email after verification
+              if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+              pendingEmail = null;
             }
           }catch(e){}
         }
-        if (pendingEmail) setTimeout(checkEmailConfirmed, 3000);
+        function startPendingPoll(){
+          if (pollTimer) return;
+          // light poll every 5s; will stop once confirmed
+          pollTimer = setInterval(checkEmailConfirmed, 5000);
+          // also do an early check shortly after load
+          setTimeout(checkEmailConfirmed, 3000);
+        }
 
         if (!editBtn || !saveBtn) return;
 
@@ -411,21 +424,26 @@
             var currentEmail = user && user.email ? String(user.email) : "";
             var nextEmail = String(emailEl.value || "").trim();
 
-            if (nextEmail && currentEmail.toLowerCase() !== nextEmail.toLowerCase()){
-              var { error } = await supabase.auth.updateUser(
-                { email: nextEmail },
-                { emailRedirectTo: "https://xraylink.ai/verify.html" }
-              );
-              if (error) {
-                show(noticeError, true);
-                // Revert to the verified email on failure
-                emailEl.value = currentEmail;
-                return;
-              }
-              // Mark pending until the new email is verified
-              try { localStorage.setItem(PENDING_KEY, nextEmail); } catch(e){}
-              show(noticePending, true);
+            // Do nothing if email wasn't changed
+            if (!nextEmail || currentEmail.toLowerCase() === nextEmail.toLowerCase()){
+              return;
             }
+
+            var { error } = await supabase.auth.updateUser(
+              { email: nextEmail },
+              { emailRedirectTo: "https://xraylink.ai/verify.html" }
+            );
+            if (error) {
+              show(noticeError, true);
+              // Revert to the verified email on failure
+              emailEl.value = currentEmail;
+              return;
+            }
+            // Mark pending until the new email is verified
+            try { localStorage.setItem(PENDING_KEY, nextEmail); } catch(e){}
+            show(noticePending, true);
+            pendingEmail = nextEmail;
+            startPendingPoll();
           }catch(e){
             show(noticeError, true);
           }
