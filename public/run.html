@@ -121,7 +121,7 @@
       }
     </style>
 
-    <!-- Minimal Supabase auth guard: added without changing any other part of the page -->
+    <!-- Minimal Supabase auth guard: unchanged -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
       (function () {
@@ -215,7 +215,7 @@
     </footer>
 
     <script>
-      // Robust theme toggle: init from saved or system, keep checkbox in sync.
+      // Robust theme toggle: unchanged
       (function() {
         var toggle = document.getElementById("themeToggle");
         var root = document.documentElement;
@@ -319,13 +319,18 @@
           opts = opts || {};
           const wantsLeads = !!opts.wantsLeads;
 
+          // Error-only payload support: { "output_error": "message" } -> bypass normal layout
+          if (d && typeof d === "object" && Object.prototype.hasOwnProperty.call(d, "output_error")) {
+            return '<div class="gc-error"><strong>Error:</strong> ' + esc(String(d.output_error)) + '</div>';
+          }
+
           const errors = [];
           if (!d || typeof d !== "object") errors.push("Empty or invalid JSON.");
           if (!d || !d.company) errors.push("Missing: company");
           if (!d || !d.company_website) errors.push("Missing: company_website");
           if (!d || !Array.isArray(d.hr)) errors.push("Missing or invalid: hr[]");
 
-          // Leads are OPTIONAL. Do NOT error if missing/empty, regardless of request.
+          // Leads are OPTIONAL. Do NOT error if missing/empty
           const hasLeads = Array.isArray(d.potential_leads) && d.potential_leads.length > 0;
 
           let out = "";
@@ -348,7 +353,6 @@
 
           out += section("Company HR people", renderCards(d.hr || []));
 
-          // Show Leads section ONLY if leads actually exist (hide when not requested or empty)
           if (hasLeads) {
             out += section("Potential leads", renderCards(d.potential_leads));
           }
