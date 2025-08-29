@@ -115,7 +115,6 @@
         'sb_publishable_x0hlg96FMQ9arkjGd2F9Pw_yQ-fLI3r'
       );
 
-      // Keep verification logic; the message is shown by default for preview
       (async () => {
         try {
           const hash = window.location.hash.substring(1);
@@ -124,7 +123,8 @@
           const refresh_token = params.get('refresh_token');
           const type = params.get('type');
 
-          if (!access_token || !refresh_token || type !== 'signup') return;
+          if (!access_token || !refresh_token) return;
+          if (type !== 'signup' && type !== 'email_change') return;
 
           const { error } = await supabase.auth.setSession({ access_token, refresh_token });
           if (error) throw error;
