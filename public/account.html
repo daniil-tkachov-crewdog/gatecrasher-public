@@ -412,7 +412,10 @@
             var nextEmail = String(emailEl.value || "").trim();
 
             if (nextEmail && currentEmail.toLowerCase() !== nextEmail.toLowerCase()){
-              var { error } = await supabase.auth.updateUser({ email: nextEmail });
+              var { error } = await supabase.auth.updateUser(
+                { email: nextEmail },
+                { emailRedirectTo: "https://xraylink.ai/verify.html" }
+              );
               if (error) {
                 show(noticeError, true);
                 // Revert to the verified email on failure
