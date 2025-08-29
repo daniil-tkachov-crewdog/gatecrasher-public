@@ -195,6 +195,15 @@
               <input id="email" type="email" placeholder="you@example.com" readonly />
             </div>
 
+            <!-- BEGIN NEW: email verification notices -->
+            <div id="email-pending" class="success" style="display:none;margin-top:-4px" role="status">
+              We’ve sent a verification link to your new email. Confirm it to finish the change.
+            </div>
+            <div id="email-error" class="error" style="display:none" role="alert">
+              Couldn’t update your email. Please try again.
+            </div>
+            <!-- END NEW: email verification notices -->
+
             <div class="stack">
               <label>Searches</label>
               <div class="quota"><span class="muted" id="quotaText" style="font-size:13px">20 / 20 searches</span></div>
@@ -344,27 +353,82 @@
         }
       })();
 
-      // Edit/Save behavior (email stays read-only)
+      // BEGIN REPLACE: Edit/Save behavior (email change with verification)
       (function(){
+        var supabase = window.__xrl_supabase__;
         var editBtn = document.getElementById("editProfile");
         var saveBtn = document.getElementById("saveProfile");
         var nameEl = document.getElementById("name");
         var emailEl = document.getElementById("email");
+        var noticePending = document.getElementById("email-pending");
+        var noticeError = document.getElementById("email-error");
+
+        function show(el, on){ if (!el) return; el.style.display = on ? "block" : "none"; }
+
+        // Persisted “pending email” marker so we can keep showing the notice until confirmed
+        var PENDING_KEY = "xrl-pending-email";
+        var pendingEmail = null;
+        try { pendingEmail = localStorage.getItem(PENDING_KEY) || null; } catch(e){}
+
+        if (pendingEmail) show(noticePending, true);
+
+        // Optional lightweight check: if current user email matches pendingEmail, clear the notice
+        async function checkEmailConfirmed(){
+          try{
+            if (!supabase || !pendingEmail) return;
+            var { data: { user } } = await supabase.auth.getUser();
+            if (user && user.email && user.email.toLowerCase() === pendingEmail.toLowerCase()) {
+              try { localStorage.removeItem(PENDING_KEY); } catch(e){}
+              show(noticePending, false);
+            }
+          }catch(e){}
+        }
+        if (pendingEmail) setTimeout(checkEmailConfirmed, 3000);
+
         if (!editBtn || !saveBtn) return;
 
         editBtn.addEventListener("click", function(){
           nameEl.readOnly = false;
+          emailEl.readOnly = false;
           nameEl.focus();
-          // email stays readOnly per spec
           saveBtn.style.display = "inline-flex";
         });
 
-        saveBtn.addEventListener("click", function(){
+        saveBtn.addEventListener("click", async function(){
+          // Lock UI back
           nameEl.readOnly = true;
+          emailEl.readOnly = true;
           saveBtn.style.display = "none";
+          show(noticeError, false);
+
+          // Save name locally (unchanged behavior)
           try { localStorage.setItem("xrl-profile-name", nameEl.value || ""); } catch(e){}
+
+          // Email change via Supabase verification
+          if (!supabase) return;
+          try{
+            var { data: { user } } = await supabase.auth.getUser();
+            var currentEmail = user && user.email ? String(user.email) : "";
+            var nextEmail = String(emailEl.value || "").trim();
+
+            if (nextEmail && currentEmail.toLowerCase() !== nextEmail.toLowerCase()){
+              var { error } = await supabase.auth.updateUser({ email: nextEmail });
+              if (error) {
+                show(noticeError, true);
+                // Revert to the verified email on failure
+                emailEl.value = currentEmail;
+                return;
+              }
+              // Mark pending until the new email is verified
+              try { localStorage.setItem(PENDING_KEY, nextEmail); } catch(e){}
+              show(noticePending, true);
+            }
+          }catch(e){
+            show(noticeError, true);
+          }
         });
       })();
+      // END REPLACE: Edit/Save behavior (email change with verification)
 
       // Quota animation to 100% for 20/20
       (function(){
@@ -450,4 +514,3 @@
     </script>
   </body>
 </html>
-
