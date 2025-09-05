@@ -202,7 +202,7 @@
           gbtn.addEventListener("click", async () => {
             await supabase.auth.signInWithOAuth({
               provider: 'google',
-              options: { redirectTo: 'https://xraylink.ai/run.html' }
+              options: { redirectTo: 'https://crewdog.app/run.html' }
             });
           });
         }
@@ -272,7 +272,7 @@
               email,
               password: pass1,
               options: {
-                emailRedirectTo: 'https://xraylink.ai/verify.html'
+                emailRedirectTo: 'https://crewdog.app/verify.html'
               }
             });
             disable(btn, false);
