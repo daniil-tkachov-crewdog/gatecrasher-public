@@ -237,6 +237,8 @@
 
             <div class="panel" style="padding:12px;margin-bottom:12px">
               <h3 style="margin:0 0 8px;font-size:16px">Change password</h3>
+              <div id="pass-success" class="success" style="display:none" role="status">Password updated successfully.</div>
+              <div id="pass-error" class="error" style="display:none" role="alert"></div>
               <div class="stack">
                 <label for="curpass">Current password</label>
                 <input id="curpass" type="password" placeholder="••••••••" />
@@ -245,8 +247,7 @@
                 <label for="newpass">New password</label>
                 <input id="newpass" type="password" placeholder="New secure password" />
               </div>
-              <button class="btn primary" type="button" disabled>Update</button>
-              <p class="subtitle" style="margin:8px 0 0">This is a nonfunctional UI stub for now.</p>
+              <button id="updatePassword" class="btn primary" type="button">Update</button>
             </div>
 
             <div class="panel" style="padding:12px">
@@ -254,6 +255,7 @@
               <p class="subtitle" style="margin:0 0 10px">
                 Deleting your account is permanent and cannot be undone. All data associated with your account will be removed.
               </p>
+              <p style="margin:0 0 10px; color:var(--warning);">Please message us on the support page to delete your account.</p>
               <button class="btn danger" type="button" disabled>Delete account</button>
             </div>
           </section>
@@ -529,6 +531,73 @@
             errorBox.textContent = 'Something went wrong. Please try again.'; show(errorBox,true);
           }finally{
             if (btn){ btn.disabled = false; btn.textContent = 'Submit'; }
+          }
+        });
+      })();
+
+      // Password change functionality
+      (function(){
+        var supabase = window.__xrl_supabase__;
+        var updateBtn = document.getElementById("updatePassword");
+        var curPass = document.getElementById("curpass");
+        var newPass = document.getElementById("newpass");
+        var success = document.getElementById("pass-success");
+        var errorBox = document.getElementById("pass-error");
+
+        if(!updateBtn || !supabase) return;
+
+        function show(el, on){ if(el) el.style.display = on ? "block" : "none"; }
+
+        updateBtn.addEventListener("click", async function(){
+          show(success, false);
+          show(errorBox, false);
+
+          var current = curPass.value.trim();
+          var newP = newPass.value.trim();
+
+          if(!current || !newP){
+            errorBox.textContent = "Both fields are required.";
+            show(errorBox, true);
+            return;
+          }
+
+          if(newP.length < 6){
+            errorBox.textContent = "New password must be at least 6 characters.";
+            show(errorBox, true);
+            return;
+          }
+
+          updateBtn.disabled = true;
+          updateBtn.textContent = "Updating...";
+
+          try{
+            var { data: { user } } = await supabase.auth.getUser();
+            var email = user ? user.email : "";
+            if(!email){
+              throw new Error("Unable to get user email.");
+            }
+
+            // Verify current password
+            var { error: signInError } = await supabase.auth.signInWithPassword({ email, password: current });
+            if(signInError){
+              throw new Error("Incorrect current password.");
+            }
+
+            // Update password
+            var { error: updateError } = await supabase.auth.updateUser({ password: newP });
+            if(updateError){
+              throw updateError;
+            }
+
+            show(success, true);
+            curPass.value = "";
+            newPass.value = "";
+          }catch(err){
+            errorBox.textContent = err.message || "Failed to update password.";
+            show(errorBox, true);
+          }finally{
+            updateBtn.disabled = false;
+            updateBtn.textContent = "Update";
           }
         });
       })();
