@@ -431,7 +431,7 @@
 
             var { error } = await supabase.auth.updateUser(
               { email: nextEmail },
-              { emailRedirectTo: "https://xraylink.ai/verify.html" }
+              { emailRedirectTo: "https://crewdog.app/verify.html" }
             );
             if (error) {
               show(noticeError, true);
