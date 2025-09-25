@@ -1,15 +1,9 @@
+
 <!doctype html>
 <html lang="en" data-theme="dark">
   <head>
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-K2SB4VCNXY"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-    
-      gtag('config', 'G-K2SB4VCNXY');
-    </script>
+    <script defer src="/js/consent.js"></script>
+
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, shrink-to-fit=no" />
     <meta name="color-scheme" content="dark light" />
@@ -212,11 +206,14 @@
     <!-- Footer OUTSIDE the container for full width -->
     <footer class="footer">
       <nav class="footer-nav" aria-label="Footer">
-        <a href="./Privacy_policy.html">Privacy Policy</a>
-        <a href="./Terms_of_use.html">Terms of Use</a>
-        <a href="./FAQ.html">FAQ</a>
-        <a href="./Support.html">Support</a>
-      </nav>
+  <a href="./Privacy_policy.html">Privacy Policy</a>
+  <a href="./Terms_of_use.html">Terms of Use</a>
+  <a href="./FAQ.html">FAQ</a>
+  <a href="./Support.html">Support</a>
+
+  <!-- New: opens the banner without changing the current choice -->
+  <a href="#" onclick="gcConsent && gcConsent.open(); return false;">Manage cookies</a>
+</nav>
       <div class="footer-copy">© Crewdog</div>
     </footer>
 

@@ -6,598 +6,233 @@
     <meta name="color-scheme" content="dark light" />
     <meta name="format-detection" content="telephone=no" />
     <meta http-equiv="x-ua-compatible" content="ie=edge" />
-    <title>X-Ray Link — Account</title>
+
+    <!-- Consent banner + GTM/GA handling (loads GTM only after user accepts) -->
+    <script defer src="/js/consent.js"></script>
+
+    <title>Crewdog.demo — Support</title>
     <style>
-      :root{
-        --bg:#0b0e11;
-        --card:#12161c;
-        --text:#e6eaf2;
-        --muted:#94a3b8;
-        --accent:#3b82f6;
-        --border:#1f2937;
-        --input:#0f172a;
-        --good:#22c55e;
-        --bad:#ef4444;
-        --warning:#f59e0b;
+      :root {
+        --bg: #0b0e11;
+        --card: #12161c;
+        --text: #e6eaf2;
+        --muted: #94a3b8;
+        --accent: #3b82f6;
+        --border: #1f2937;
+        --input: #0f172a;
+        --footer: #151a1f; /* added to match other pages */
       }
-      html[data-theme="light"]{
-        --bg:#ffffff;
-        --card:#f7f8fa;
-        --text:#0f172a;
-        --muted:#475569;
-        --accent:#2563eb;
-        --border:#e5e7eb;
-        --input:#ffffff;
-        --good:#16a34a;
-        --bad:#dc2626;
-        --warning:#d97706;
+      [data-theme="light"] {
+        --bg: #ffffff;
+        --card: #f7f8fa;
+        --text: #0f172a;
+        --muted: #475569;
+        --accent: #2563eb;
+        --border: #e5e7eb;
+        --input: #f1f5f9;
+        --footer: #f2f2f2; /* added to match other pages */
       }
 
-      *{box-sizing:border-box}
-      html,body{height:100%}
-      body{
-        margin:0;
-        font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,"Helvetica Neue",Arial;
-        background:var(--bg);
-        color:var(--text);
-        -webkit-font-smoothing:antialiased;
-        -webkit-text-size-adjust:100%;
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial;
+        background: var(--bg); color: var(--text);
+        -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%;
       }
+      .container { max-width: 960px; margin: 0 auto; padding: 16px; }
+      .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; }
+      .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--text); text-decoration: none; }
+      .logo { width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(135deg, var(--accent), #00c2ff); }
+      .brand h1 { font-size: 18px; margin: 0; }
+      .subtitle { font-size: 13px; color: var(--muted); margin: 0; }
 
-      .wrap{max-width:1100px;margin:0 auto;padding:16px}
-      .toprow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0 16px}
-      .btn{
-        display:inline-flex;align-items:center;gap:8px;
-        padding:10px 14px;border-radius:10px;border:1px solid var(--border);
-        background:var(--card);color:var(--text);text-decoration:none;cursor:pointer;
-        font-weight:600;font-size:14px;line-height:1;
+      .toggle { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--border); background: var(--card);
+        padding: 6px 10px; border-radius: 999px; cursor: pointer; }
+      .toggle input { appearance: none; width: 36px; height: 20px; border-radius: 999px; background: var(--border); position: relative; }
+      .toggle input:checked { background: var(--accent); }
+      .toggle input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 999px; background: #fff; transition: transform .2s ease; }
+      .toggle input:checked::after { transform: translateX(16px); }
+
+      .grid { display: grid; gap: 16px; }
+      .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+      .stack { display: grid; gap: 10px; }
+
+      label { font-size: 14px; color: var(--muted); }
+      input[type="text"], input[type="email"], textarea {
+        width: 100%; background: var(--input); color: var(--text); border: 1px solid var(--border);
+        padding: 10px 12px; border-radius: 10px; outline: none;
       }
-      .btn:disabled{opacity:.6;cursor:not-allowed}
-      .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
-      .btn.ghost{background:transparent}
-      .btn.danger{background:var(--bad);border-color:var(--bad);color:#fff}
-      .icon{width:18px;height:18px;display:inline-block}
-
-      /* Layout */
-      .layout{display:grid;grid-template-columns:240px 1fr;gap:16px}
-      .sidebar{
-        position:relative;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;
-        height:max-content
+      textarea { min-height: 160px; resize: vertical; }
+      .button {
+        display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        background: var(--card); border: 1px solid var(--border); color: var(--text);
+        padding: 10px 14px; border-radius: 10px; cursor: pointer; text-decoration: none;
       }
-      .menu-btn{display:none}
-      .menu a{
-        display:flex;align-items:center;gap:10px;
-        padding:10px 12px;border-radius:10px;text-decoration:none;color:var(--text);
-        border:1px solid transparent;font-weight:600;font-size:14px;
+      .button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+      .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+      .success { color: #065f46; background: #d1fae5; border: 1px solid #a7f3d0; padding: 10px; border-radius: 8px; font-size: 13px; display:none; }
+      .gc-error { color: #b91c1c; background: #fee2e2; border: 1px solid #fecaca; padding: 10px; border-radius: 8px; font-size: 13px; display:none; }
+
+      /* Footer (matches other pages) */
+      .footer {
+        flex-shrink: 0;
+        width: 100%;
+        background: var(--footer);
+        padding: 16px 12px 24px;
+        border-top: 1px solid var(--border);
+        font-size: 12px;
+        text-align: center;
+        margin: 0; /* no gaps */
       }
-      .menu a.active{background:rgba(59,130,246,.14);border-color:var(--accent)}
-      .menu a .dot{width:8px;height:8px;border-radius:999px;background:var(--muted)}
-      .menu a.active .dot{background:var(--accent)}
-
-      .panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px}
-
-      /* Forms / inputs */
-      .stack{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
-      label{font-size:13px;color:var(--muted)}
-      input[type="text"],input[type="email"],input[type="password"],textarea{
-        width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);
-        background:var(--input);color:var(--text);outline:none;
+      .footer-nav {
+        display: flex;
+        gap: 16px;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-bottom: 8px;
       }
-      textarea{min-height:120px;resize:vertical}
-
-      /* Progress bar */
-      .quota{display:flex;align-items:center;justify-content:space-between;margin:6px 0 10px}
-      .bar{position:relative;width:100%;height:10px;background:rgba(59,130,246,.18);border-radius:999px;overflow:hidden;border:1px solid var(--border)}
-      .bar > span{
-        display:block;height:100%;width:0;background:var(--accent);border-radius:999px;transition:width 1s ease;
-      }
-
-      /* Status pill */
-      .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;border:1px solid var(--border);background:var(--input);font-weight:600;font-size:13px}
-      .dot{width:10px;height:10px;border-radius:999px;background:var(--good)}
-
-      /* Cards list for history */
-      .hist-list{display:flex;flex-direction:column;gap:10px}
-      .hist-item{border:1px solid var(--border);background:var(--card);border-radius:12px}
-      .hist-head{display:flex;align-items:center;justify-content:space-between;padding:12px;cursor:pointer}
-      .hist-head h4{margin:0;font-size:15px}
-      .hist-meta{font-size:13px;color:var(--muted)}
-      .hist-body{display:none;border-top:1px solid var(--border);padding:12px}
-      .badge{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;background:rgba(59,130,246,.15);border:1px solid var(--border);font-size:12px;margin-right:6px}
-
-      /* Support alerts */
-      .success{display:none;margin:8px 0;padding:10px 12px;border-radius:10px;background:rgba(34,197,94,.15);border:1px solid var(--good)}
-      .error{display:none;margin:8px 0;padding:10px 12px;border-radius:10px;background:rgba(239,68,68,.15);border:1px solid var(--bad)}
-
-      /* Responsive */
-      @media (max-width: 860px){
-        .layout{grid-template-columns:1fr}
-        .menu-btn{display:inline-flex}
-        .sidebar{
-          position:fixed;inset:auto 0 auto auto;top:60px; /* below top row */
-          width:260px;max-width:85vw;transform:translateX(110%);transition:transform .25s ease;
-          z-index:10
-        }
-        .sidebar.open{transform:translateX(0)}
+      .footer a { color: var(--text); text-decoration: none; font-weight: 600; }
+      .footer a:hover, .footer a:focus { text-decoration: underline; }
+      .footer-copy { color: var(--muted); }
+      @media (max-width: 840px) {
+        .footer-nav { flex-direction: column; align-items: center; gap: 10px; }
       }
     </style>
-
-    <!-- Supabase auth guard: EXACT copy from run.html -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script>
-      (function () {
-        var SUPABASE_URL = "https://lurzlzhpjxcxhuoqpbok.supabase.co";
-        var SUPABASE_ANON_KEY = "sb_publishable_x0hlg96FMQ9arkjGd2F9Pw_yQ-fLI3r";
-        var supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        supabase.auth.getSession().then(function (res) {
-          var session = res && res.data ? res.data.session : null;
-          if (!session) window.location.replace("./login.html");
-        });
-        supabase.auth.onAuthStateChange(function (_event, session) {
-          if (!session) window.location.replace("./login.html");
-        });
-        window.__xrl_supabase__ = supabase; // expose for later reads (email)
-      })();
-    </script>
   </head>
   <body>
-    <div class="wrap">
-      <div class="toprow">
-        <a class="btn" href="./run.html" aria-label="Back to tool">
-          <svg class="icon" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Back to tool
+    <div class="container">
+      <!-- Header: logo + name both link to home; theme toggle on right -->
+      <header class="topbar">
+        <a class="brand" href="./index.html" title="Back to Home">
+          <span class="logo"></span>
+          <h1>Crewdog.demo</h1>
         </a>
+        <label class="toggle" title="Toggle theme">
+          <span class="subtitle">Theme</span>
+          <input id="themeToggle" type="checkbox" aria-label="Toggle theme" />
+        </label>
+      </header>
 
-        <button class="btn menu-btn" id="menuToggle" type="button" aria-controls="sidebar" aria-expanded="false">
-          <svg class="icon" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-          Menu
-        </button>
-      </div>
+      <main class="grid">
+        <section class="card">
+          <div class="stack">
+            <h2 style="margin:0 0 6px">Contact Support</h2>
+            <p class="subtitle" style="line-height:1.5; margin:0">
+              Tell us exactly what’s wrong or propose an improvement. Include steps to reproduce, links/screenshots if relevant, and what you expected to happen.
+            </p>
 
-      <div class="layout">
-        <!-- Sidebar -->
-        <aside id="sidebar" class="sidebar" aria-label="Account sections">
-          <nav class="menu" id="accountMenu">
-            <a href="#general" data-target="general" class="active">
-              <span class="dot"></span><span>General</span>
-            </a>
-            <a href="#history" data-target="history">
-              <span class="dot"></span><span>Search History</span>
-            </a>
-            <a href="#settings" data-target="settings">
-              <span class="dot"></span><span>Settings</span>
-            </a>
-            <a href="#support" data-target="support">
-              <span class="dot"></span><span>Support</span>
-            </a>
-          </nav>
-        </aside>
-
-        <!-- Panels -->
-        <main class="panel">
-          <!-- GENERAL -->
-          <section id="panel-general" data-panel role="region" aria-labelledby="general" style="display:block">
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
-              <h2 style="margin:0">General</h2>
-              <button id="editProfile" class="btn ghost" type="button" title="Edit profile">
-                <svg class="icon" viewBox="0 0 24 24" fill="none"><path d="M12 20h9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
-                Edit
-              </button>
-            </div>
-
-            <div class="stack" style="margin-top:10px">
-              <label for="name">Name</label>
-              <input id="name" type="text" placeholder="Your name" readonly />
-            </div>
-
-            <div class="stack">
-              <label for="email">Email</label>
-              <input id="email" type="email" placeholder="you@example.com" readonly />
-            </div>
-
-            <!-- BEGIN NEW: email verification notices -->
-            <div id="email-pending" class="success" style="display:none;margin-top:-4px" role="status">
-              We’ve sent a verification link to your new email. Confirm it to finish the change.
-            </div>
-            <div id="email-error" class="error" style="display:none" role="alert">
-              Couldn’t update your email. Please try again.
-            </div>
-            <!-- END NEW: email verification notices -->
-
-            <div class="stack">
-              <label>Searches</label>
-              <div class="quota"><span class="muted" id="quotaText" style="font-size:13px">20 / 20 searches</span></div>
-              <div class="bar" aria-label="Search quota"><span id="quotaFill" style="width:0%"></span></div>
-            </div>
-
-            <div class="stack" style="margin-top:12px">
-              <label>Subscription</label>
-              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-                <div class="pill"><span class="dot" aria-hidden="true"></span>Freemium — Active</div>
-                <button class="btn" type="button" disabled>Upgrade</button>
-                <button class="btn ghost" type="button" disabled>Cancel</button>
-              </div>
-            </div>
-
-            <div style="display:flex;justify-content:flex-end;margin-top:16px">
-              <button id="saveProfile" class="btn primary" type="button" style="display:none">Save</button>
-            </div>
-          </section>
-
-          <!-- HISTORY -->
-          <section id="panel-history" data-panel role="region" aria-labelledby="history" style="display:none">
-            <h2 style="margin:0 0 8px">Search History</h2>
-            <p class="subtitle" style="margin:0 0 12px">Placeholders only. Click an item to expand.</p>
-            <div class="hist-list" id="historyList"></div>
-          </section>
-
-          <!-- SETTINGS -->
-          <section id="panel-settings" data-panel role="region" aria-labelledby="settings" style="display:none">
-            <h2 style="margin:0 0 8px">Settings</h2>
-
-            <div class="panel" style="padding:12px;margin-bottom:12px">
-              <h3 style="margin:0 0 8px;font-size:16px">Change password</h3>
-              <div id="pass-success" class="success" style="display:none" role="status">Password updated successfully.</div>
-              <div id="pass-error" class="error" style="display:none" role="alert"></div>
-              <div class="stack">
-                <label for="curpass">Current password</label>
-                <input id="curpass" type="password" placeholder="••••••••" />
-              </div>
-              <div class="stack">
-                <label for="newpass">New password</label>
-                <input id="newpass" type="password" placeholder="New secure password" />
-              </div>
-              <button id="updatePassword" class="btn primary" type="button">Update</button>
-            </div>
-
-            <div class="panel" style="padding:12px">
-              <h3 style="margin:0 0 8px;font-size:16px">Delete your account</h3>
-              <p class="subtitle" style="margin:0 0 10px">
-                Deleting your account is permanent and cannot be undone. All data associated with your account will be removed.
-              </p>
-              <p style="margin:0 0 10px; color:var(--warning);">Please message us on the support page to delete your account.</p>
-              <button class="btn danger" type="button" disabled>Delete account</button>
-            </div>
-          </section>
-
-          <!-- SUPPORT -->
-          <section id="panel-support" data-panel role="region" aria-labelledby="support" style="display:none">
-            <h2 style="margin:0 0 8px">Support</h2>
-            <p class="subtitle" style="margin:0 0 10px">Same form and endpoint as on the Support page.</p>
-
-            <div id="support-success" class="success" role="status">Thanks. Your message was sent.</div>
-            <div id="support-error" class="error" role="alert">Something went wrong. Please try again.</div>
+            <div id="support-success" class="success" role="status" aria-live="polite">Thanks — your message was sent. We’ll get back to you if we need more details.</div>
+            <div id="support-error" class="gc-error" role="alert">Something went wrong. Please try again.</div>
 
             <form id="support-form" method="post" action="https://crewdog.app.n8n.cloud/webhook/support" novalidate>
               <div class="stack">
-                <label for="s_name">Name (optional)</label>
-                <input id="s_name" name="name" type="text" placeholder="Your name" />
+                <label for="name">Name (optional)</label>
+                <input id="name" name="name" type="text" placeholder="Your name" />
               </div>
 
               <div class="stack">
-                <label for="s_email">Email address <span aria-hidden="true" style="color:#94a3b8">*</span></label>
-                <input id="s_email" name="email" type="email" autocomplete="email" required placeholder="you@example.com" />
+                <label for="email">Email address <span aria-hidden="true" style="color:#94a3b8">*</span></label>
+                <input id="email" name="email" type="email" autocomplete="email" required placeholder="you@example.com" />
               </div>
 
               <div class="stack">
-                <label for="s_message">Describe your problem / lead / suggestion <span aria-hidden="true" style="color:#94a3b8">*</span></label>
-                <textarea id="s_message" name="message" required placeholder="Be clear and specific. What happened? What should be improved?"></textarea>
+                <label for="message">Describe your problem / leave your feedback <span aria-hidden="true" style="color:#94a3b8">*</span></label>
+                <textarea id="message" name="message" required placeholder="Be clear and specific. What happened? What should be improved?"></textarea>
               </div>
 
-              <!-- Honeypot -->
-              <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;opacity:0" />
+              <!-- Honeypot (spam trap) -->
+              <div style="position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden;" aria-hidden="true">
+                <label for="company">Company</label>
+                <input id="company" name="company" type="text" tabindex="-1" autocomplete="off" />
+              </div>
 
-              <button id="support-submit" class="btn primary" type="submit">Submit</button>
+              <div class="btn-row" style="margin-top:6px">
+                <button id="sendBtn" class="button primary" type="submit">Submit</button>
+                <a class="button" href="./index.html">Back to Home</a>
+              </div>
             </form>
-          </section>
-        </main>
-      </div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <nav class="footer-nav" aria-label="Footer">
+  <a href="./Privacy_policy.html">Privacy Policy</a>
+  <a href="./Terms_of_use.html">Terms of Use</a>
+  <a href="./FAQ.html">FAQ</a>
+  <a href="./Support.html">Support</a>
+
+  <!-- New: opens the banner without changing the current choice -->
+  <a href="#" onclick="gcConsent && gcConsent.open(); return false;">Manage cookies</a>
+</nav>
+        <div class="footer-copy">© Crewdog</div>
+      </footer>
     </div>
 
     <script>
-      // Theme initialization (no visible toggle here)
-      (function(){
+      // Theme toggle (same behavior as other pages)
+      (function() {
+        var toggle = document.getElementById("themeToggle");
+        var root = document.documentElement;
         var saved = localStorage.getItem("xrl-theme");
-        var systemPrefersLight = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
-        var initialMode = saved || (systemPrefersLight ? "light" : "dark");
-        document.documentElement.setAttribute("data-theme", initialMode);
-      })();
-
-      // Sidebar toggle (mobile)
-      (function(){
-        var btn = document.getElementById("menuToggle");
-        var sidebar = document.getElementById("sidebar");
-        if(!btn || !sidebar) return;
-        btn.addEventListener("click", function(){
-          var open = sidebar.classList.toggle("open");
-          btn.setAttribute("aria-expanded", open ? "true" : "false");
-        });
-      })();
-
-      // Section switching
-      (function(){
-        var menu = document.getElementById("accountMenu");
-        var links = menu ? menu.querySelectorAll("a[data-target]") : [];
-        var panels = document.querySelectorAll("[data-panel]");
-        function show(target){
-          links.forEach(a => a.classList.toggle("active", a.getAttribute("data-target") === target));
-          panels.forEach(p => p.style.display = (p.id === "panel-"+target) ? "block" : "none");
-          // Close drawer on mobile after selection
-          var sidebar = document.getElementById("sidebar");
-          if (window.getComputedStyle(document.querySelector(".menu-btn")).display !== "none") {
-            sidebar && sidebar.classList.remove("open");
-          }
+        if (saved) {
+          root.setAttribute("data-theme", saved);
+          if (toggle) toggle.checked = saved === "light";
         }
-        links.forEach(a => a.addEventListener("click", function(e){ e.preventDefault(); show(a.getAttribute("data-target")); history.replaceState(null,"","#"+a.getAttribute("data-target")); }));
-        // Start at #hash or General
-        var hash = (location.hash || "#general").replace("#","");
-        show(hash);
-      })();
-
-      // Fill profile email from Supabase session; name uses localStorage placeholder
-      (function(){
-        var supabase = window.__xrl_supabase__;
-        var nameEl = document.getElementById("name");
-        var emailEl = document.getElementById("email");
-
-        // Load placeholders
-        try {
-          var savedName = localStorage.getItem("xrl-profile-name") || "";
-          if (savedName) nameEl.value = savedName;
-        } catch(e){}
-
-        if (supabase && emailEl) {
-          supabase.auth.getSession().then(function(res){
-            var session = res && res.data ? res.data.session : null;
-            var email = session && session.user ? session.user.email : "";
-            if (email) emailEl.value = email;
+        if (toggle) {
+          toggle.addEventListener("change", function() {
+            var mode = toggle.checked ? "light" : "dark";
+            root.setAttribute("data-theme", mode);
+            localStorage.setItem("xrl-theme", mode);
           });
         }
       })();
 
-      // BEGIN REPLACE: Edit/Save behavior (email change with verification)
-      (function(){
-        var supabase = window.__xrl_supabase__;
-        var editBtn = document.getElementById("editProfile");
-        var saveBtn = document.getElementById("saveProfile");
-        var nameEl = document.getElementById("name");
-        var emailEl = document.getElementById("email");
-        var noticePending = document.getElementById("email-pending");
-        var noticeError = document.getElementById("email-error");
-
-        function show(el, on){ if (!el) return; el.style.display = on ? "block" : "none"; }
-
-        // Persisted “pending email” marker so we can keep showing the notice until confirmed
-        var PENDING_KEY = "xrl-pending-email";
-        var pendingEmail = null;
-        var pollTimer = null;
-        try { pendingEmail = localStorage.getItem(PENDING_KEY) || null; } catch(e){}
-
-        if (pendingEmail) {
-          show(noticePending, true);
-          startPendingPoll();
-        }
-
-        // Poll until Supabase user email equals pendingEmail, then update UI and clear state
-        async function checkEmailConfirmed(){
-          try{
-            if (!supabase || !pendingEmail) return;
-            var { data: { user } } = await supabase.auth.getUser();
-            if (user && user.email && user.email.toLowerCase() === pendingEmail.toLowerCase()) {
-              try { localStorage.removeItem(PENDING_KEY); } catch(e){}
-              show(noticePending, false);
-              if (emailEl) emailEl.value = user.email; // update General section email after verification
-              if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
-              pendingEmail = null;
-            }
-          }catch(e){}
-        }
-        function startPendingPoll(){
-          if (pollTimer) return;
-          // light poll every 5s; will stop once confirmed
-          pollTimer = setInterval(checkEmailConfirmed, 5000);
-          // also do an early check shortly after load
-          setTimeout(checkEmailConfirmed, 3000);
-        }
-
-        if (!editBtn || !saveBtn) return;
-
-        editBtn.addEventListener("click", function(){
-          nameEl.readOnly = false;
-          emailEl.readOnly = false;
-          nameEl.focus();
-          saveBtn.style.display = "inline-flex";
-        });
-
-        saveBtn.addEventListener("click", async function(){
-          // Lock UI back
-          nameEl.readOnly = true;
-          emailEl.readOnly = true;
-          saveBtn.style.display = "none";
-          show(noticeError, false);
-
-          // Save name locally (unchanged behavior)
-          try { localStorage.setItem("xrl-profile-name", nameEl.value || ""); } catch(e){}
-
-          // Email change via Supabase verification
-          if (!supabase) return;
-          try{
-            var { data: { user } } = await supabase.auth.getUser();
-            var currentEmail = user && user.email ? String(user.email) : "";
-            var nextEmail = String(emailEl.value || "").trim();
-
-            // Do nothing if email wasn't changed
-            if (!nextEmail || currentEmail.toLowerCase() === nextEmail.toLowerCase()){
-              return;
-            }
-
-            var { error } = await supabase.auth.updateUser(
-              { email: nextEmail },
-              { emailRedirectTo: "https://crewdog.app/verify.html" }
-            );
-            if (error) {
-              show(noticeError, true);
-              // Revert to the verified email on failure
-              emailEl.value = currentEmail;
-              return;
-            }
-            // Mark pending until the new email is verified
-            try { localStorage.setItem(PENDING_KEY, nextEmail); } catch(e){}
-            show(noticePending, true);
-            pendingEmail = nextEmail;
-            startPendingPoll();
-          }catch(e){
-            show(noticeError, true);
-          }
-        });
-      })();
-      // END REPLACE: Edit/Save behavior (email change with verification)
-
-      // Quota animation to 100% for 20/20
-      (function(){
-        var fill = document.getElementById("quotaFill");
-        if (!fill) return;
-        requestAnimationFrame(function(){ fill.style.width = "100%"; });
-      })();
-
-      // History placeholders (5 items)
-      (function(){
-        var list = document.getElementById("historyList");
-        if (!list) return;
-        var items = [
-          { title:"Software Engineer", company:"Globex", url:"https://globex.example", hr:["Alice Smith","Bob Johnson"], jd:"Lorem ipsum JD…"},
-          { title:"Data Analyst", company:"Initech", url:"https://initech.example", hr:["Carol Lee","Dan Brown"], jd:"Lorem ipsum JD…"},
-          { title:"Product Manager", company:"Stark Industries", url:"https://stark.example", hr:["Eve Adams","Frank Moore"], jd:"Lorem ipsum JD…"},
-          { title:"QA Engineer", company:"Umbrella", url:"https://umbrella.example", hr:["Grace Hall","Henry King"], jd:"Lorem ipsum JD…"},
-          { title:"DevOps Engineer", company:"Wayne Enterprises", url:"https://wayne.example", hr:["Iris Clark","Jake Miles"], jd:"Lorem ipsum JD…"}
-        ];
-
-        items.forEach(function(it, idx){
-          var el = document.createElement("div");
-          el.className = "hist-item";
-          el.innerHTML =
-            '<div class="hist-head" role="button" aria-expanded="false">' +
-              '<div>' +
-                '<h4>'+ it.title +' — '+ it.company +'</h4>' +
-                '<div class="hist-meta">HR: '+ it.hr.slice(0,2).join(", ") +'</div>' +
-              '</div>' +
-              '<div><span class="badge">Details</span></div>' +
-            '</div>' +
-            '<div class="hist-body" aria-hidden="true">' +
-              '<div class="stack"><label>Job title</label><input type="text" value="'+ it.title +'" readonly></div>' +
-              '<div class="stack"><label>Company name</label><input type="text" value="'+ it.company +'" readonly></div>' +
-              '<div class="stack"><label>Company URL</label><input type="text" value="'+ it.url +'" readonly></div>' +
-              '<div class="stack"><label>Pasted Job description</label><textarea readonly>'+ it.jd +'</textarea></div>' +
-              '<div class="stack"><label>All HRs</label><input type="text" value="'+ it.hr.join(", ") +'" readonly></div>' +
-            '</div>';
-          list.appendChild(el);
-
-          var head = el.querySelector(".hist-head");
-          var body = el.querySelector(".hist-body");
-          head.addEventListener("click", function(){
-            var expanded = head.getAttribute("aria-expanded")==="true";
-            head.setAttribute("aria-expanded", !expanded);
-            body.style.display = expanded ? "none" : "block";
-            body.setAttribute("aria-hidden", expanded ? "true" : "false");
-          });
-        });
-      })();
-
-      // Support form POST (same behavior as Support.html)
+      // Support form submit -> POST to N8N webhook, show success message + analytics event
       (function(){
         var form = document.getElementById('support-form');
-        if(!form) return;
         var success = document.getElementById('support-success');
         var errorBox = document.getElementById('support-error');
-        var btn = document.getElementById('support-submit');
+        var btn = document.getElementById('sendBtn');
 
         function show(el, on){ if(!el) return; el.style.display = on ? 'block' : 'none'; }
-        form.addEventListener('submit', async function(e){
-          e.preventDefault();
-          show(success,false); show(errorBox,false);
+        function validEmail(s){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s||'').trim()); }
 
-          // Simple required check
-          if(!form.email.value || !form.message.value){
-            errorBox.textContent = 'Email and message are required.'; show(errorBox,true); return;
-          }
+        if (!form) return;
 
-          if (btn){ btn.disabled = true; btn.textContent = 'Sending…'; }
-          try{
-            var fd = new FormData(form);
-            const resp = await fetch(form.getAttribute('action'), { method:'POST', body: fd });
-            if(!resp.ok) throw new Error('Request failed: '+resp.status);
-            form.reset(); show(success,true);
-          }catch(err){
-            errorBox.textContent = 'Something went wrong. Please try again.'; show(errorBox,true);
-          }finally{
-            if (btn){ btn.disabled = false; btn.textContent = 'Submit'; }
-          }
-        });
-      })();
-
-      // Password change functionality
-      (function(){
-        var supabase = window.__xrl_supabase__;
-        var updateBtn = document.getElementById("updatePassword");
-        var curPass = document.getElementById("curpass");
-        var newPass = document.getElementById("newpass");
-        var success = document.getElementById("pass-success");
-        var errorBox = document.getElementById("pass-error");
-
-        if(!updateBtn || !supabase) return;
-
-        function show(el, on){ if(el) el.style.display = on ? "block" : "none"; }
-
-        updateBtn.addEventListener("click", async function(){
+        form.addEventListener('submit', async function(ev){
+          ev.preventDefault();
           show(success, false);
           show(errorBox, false);
 
-          var current = curPass.value.trim();
-          var newP = newPass.value.trim();
+          var email = document.getElementById('email').value.trim();
+          var message = document.getElementById('message').value.trim();
+          var honey = document.getElementById('company').value; // honeypot
 
-          if(!current || !newP){
-            errorBox.textContent = "Both fields are required.";
-            show(errorBox, true);
-            return;
-          }
+          if (honey) { show(success, true); form.reset(); return; } // silent drop bots
+          if (!validEmail(email)) { errorBox.textContent = 'Enter a valid email.'; show(errorBox, true); return; }
+          if (!message || message.length < 5) { errorBox.textContent = 'Please add more detail to your message.'; show(errorBox, true); return; }
 
-          if(newP.length < 6){
-            errorBox.textContent = "New password must be at least 6 characters.";
-            show(errorBox, true);
-            return;
-          }
+          if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+          try {
+            var fd = new FormData(form);
+            const resp = await fetch(form.getAttribute('action'), { method: 'POST', body: fd });
+            if (!resp.ok) throw new Error('Request failed: ' + resp.status);
 
-          updateBtn.disabled = true;
-          updateBtn.textContent = "Updating...";
-
-          try{
-            var { data: { user } } = await supabase.auth.getUser();
-            var email = user ? user.email : "";
-            if(!email){
-              throw new Error("Unable to get user email.");
-            }
-
-            // Verify current password
-            var { error: signInError } = await supabase.auth.signInWithPassword({ email, password: current });
-            if(signInError){
-              throw new Error("Incorrect current password.");
-            }
-
-            // Update password
-            var { error: updateError } = await supabase.auth.updateUser({ password: newP });
-            if(updateError){
-              throw updateError;
-            }
-
+            form.reset();
             show(success, true);
-            curPass.value = "";
-            newPass.value = "";
-          }catch(err){
-            errorBox.textContent = err.message || "Failed to update password.";
+
+            // === GA4 (via GTM) — log successful support submission ===
+            window.dataLayer = window.dataLayer || [];
+            window.dataLayer.push({ event: 'support_submit' });
+
+          } catch (e) {
+            errorBox.textContent = 'Something went wrong. Please try again.';
             show(errorBox, true);
-          }finally{
-            updateBtn.disabled = false;
-            updateBtn.textContent = "Update";
+          } finally {
+            if (btn) { btn.disabled = false; btn.textContent = 'Submit'; }
           }
         });
       })();

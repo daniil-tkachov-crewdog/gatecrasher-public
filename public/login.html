@@ -1,15 +1,9 @@
 <!doctype html>
 <html lang="en" data-theme="dark">
   <head>
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-K2SB4VCNXY"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-    
-      gtag('config', 'G-K2SB4VCNXY');
-    </script>
+    <!-- Consent banner + GTM/GA handling (loads GTM only after user accepts) -->
+    <script defer src="/js/consent.js"></script>
+
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="dark light" />
@@ -195,11 +189,15 @@
         "sb_publishable_x0hlg96FMQ9arkjGd2F9Pw_yQ-fLI3r"
       );
 
-      // Google login button
+      // Google login button (+ analytics event)
       (function(){
         const gbtn = document.getElementById("google-btn");
         if(gbtn){
           gbtn.addEventListener("click", async () => {
+            // track login method=google
+            window.dataLayer = window.dataLayer || [];
+            window.dataLayer.push({ event: "login", method: "google" });
+
             await supabase.auth.signInWithOAuth({
               provider: 'google',
               options: { redirectTo: 'https://crewdog.app/run.html' }
@@ -213,7 +211,7 @@
       function disable(btn, on){ if(!btn) return; btn.disabled = !!on; }
       function validEmail(s){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s||"").trim()); }
 
-      // LOGIN (unchanged)
+      // LOGIN (password) + analytics event
       (function () {
         const form = document.getElementById("form-login");
         const btn  = document.getElementById("login-btn");
@@ -238,6 +236,11 @@
               console.log("Login error details:", error);
               return show(err, "Invalid email or password");
             }
+
+            // track login method=password
+            window.dataLayer = window.dataLayer || [];
+            window.dataLayer.push({ event: "login", method: "password" });
+
             window.location.href = "./run.html";
           } catch (e) {
             disable(btn, false);
@@ -247,7 +250,7 @@
         });
       })();
 
-      // REGISTER (unchanged)
+      // REGISTER (+ analytics event)
       (function () {
         const form = document.getElementById("form-register");
         const btn  = document.getElementById("reg-btn");
@@ -283,6 +286,11 @@
             }
 
             show(ok, "Registration successful! Please check your inbox and verify your email to activate your account. After verification, return here to log in.");
+
+            // track sign_up method=email
+            window.dataLayer = window.dataLayer || [];
+            window.dataLayer.push({ event: "sign_up", method: "email" });
+
           } catch (e) {
             disable(btn, false);
             console.error("Registration network error:", e);

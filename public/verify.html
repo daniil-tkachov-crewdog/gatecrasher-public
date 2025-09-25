@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="en" data-theme="light">
   <head>
@@ -6,6 +7,10 @@
     <meta name="color-scheme" content="light" />
     <meta name="format-detection" content="telephone=no" />
     <meta http-equiv="x-ua-compatible" content="ie=edge" />
+
+    <script defer src="/js/consent.js"></script>
+
+
     <title>X-Ray Link — Email Verified</title>
     <style>
       :root {
@@ -98,11 +103,14 @@
 
     <footer class="footer">
       <nav class="footer-nav" aria-label="Footer">
-        <a href="./Privacy_policy.html">Privacy Policy</a>
-        <a href="./Terms_of_use.html">Terms of Use</a>
-        <a href="./FAQ.html">FAQ</a>
-        <a href="./Support.html">Support</a>
-      </nav>
+  <a href="./Privacy_policy.html">Privacy Policy</a>
+  <a href="./Terms_of_use.html">Terms of Use</a>
+  <a href="./FAQ.html">FAQ</a>
+  <a href="./Support.html">Support</a>
+
+  <!-- New: opens the banner without changing the current choice -->
+  <a href="#" onclick="gcConsent && gcConsent.open(); return false;">Manage cookies</a>
+</nav>
       <div class="footer-copy">© Crewdog</div>
     </footer>
 

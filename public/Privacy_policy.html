@@ -6,6 +6,10 @@
     <meta name="color-scheme" content="dark light" />
     <meta name="format-detection" content="telephone=no" />
     <meta http-equiv="x-ua-compatible" content="ie=edge" />
+
+    <!-- Consent loader (opens banner + exposes gcConsent.*) -->
+    <script defer src="/js/consent.js"></script>
+
     <title>Privacy Policy — Crewdog.demo</title>
     <style>
       :root {
@@ -63,6 +67,13 @@
       .toc a { color: var(--accent); text-decoration: none; }
       .toc a:hover { text-decoration: underline; }
 
+      /* Buttons to match the rest of the site */
+      .button {
+        display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        background: var(--card); border: 1px solid var(--border); color: var(--text);
+        padding: 10px 14px; border-radius: 10px; cursor: pointer; text-decoration: none;
+      }
+
       .footer {
         flex-shrink: 0;
         width: 100%;
@@ -105,6 +116,23 @@
         <section class="card legal">
           <h1>Privacy Policy</h1>
           <div class="meta">Effective date: 27 August 2025 • United Kingdom (UK GDPR & Data Protection Act 2018)</div>
+
+          <!-- NEW: Manage analytics consent controls -->
+          <section class="card" style="margin:12px 0">
+            <h2 style="margin:0 0 8px">Manage analytics consent</h2>
+            <p class="subtitle" style="margin:0 0 12px">
+              We only load Google Analytics after you opt in. You can review or change your choice anytime.
+            </p>
+
+            <div style="display:flex; gap:8px; flex-wrap:wrap">
+              <button type="button" class="button" onclick="gcConsent && gcConsent.open()">Manage cookies</button>
+              <button type="button" class="button" onclick="gcConsent && gcConsent.accept()">Accept</button>
+              <button type="button" class="button" onclick="gcConsent && gcConsent.reject()">Reject</button>
+            </div>
+
+            <!-- Optional: show current status -->
+            <p id="consent-status" class="subtitle" style="margin:10px 0 0"></p>
+          </section>
 
           <div class="toc">
             <strong>Contents:</strong>
@@ -190,7 +218,7 @@
           <h2 id="cookies">10) Cookies & local storage</h2>
           <ul>
             <li><strong>Necessary cookies/local storage:</strong> used to operate core features (e.g., theme preference via local storage) and basic security.</li>
-            <li><strong>Analytics/marketing:</strong> none.</li>
+            <li><strong>Analytics (consent-based):</strong> we use Google Tag Manager and Google Analytics <em>only after you opt in</em>. Until then, analytics are disabled and no GA tags are loaded. You can change your choice anytime via the controls above or the “Manage cookies” link in the footer.</li>
           </ul>
           <p>You can control cookies through your browser settings; disabling strictly necessary cookies may affect functionality.</p>
 
@@ -212,11 +240,14 @@
         <a href="./Terms_of_use.html">Terms of Use</a>
         <a href="./FAQ.html">FAQ</a>
         <a href="./Support.html">Support</a>
+        <!-- New: opens the banner without changing the current choice -->
+        <a href="#" onclick="gcConsent && gcConsent.open(); return false;">Manage cookies</a>
       </nav>
       <div class="footer-copy">© Crewdog</div>
     </footer>
 
     <script>
+      // Theme toggle
       (function() {
         var toggle = document.getElementById("themeToggle");
         var root = document.documentElement;
@@ -234,6 +265,18 @@
             localStorage.setItem("xrl-theme", mode);
           });
         }
+      })();
+
+      // Show current consent status (safe if consent.js hasn’t loaded yet)
+      (function () {
+        var el = document.getElementById('consent-status');
+        if (!el) return;
+        try {
+          var saved = JSON.parse(localStorage.getItem('gc-consent-v1') || 'null');
+          if (!saved) { el.textContent = 'Status: not set (first visit)'; return; }
+          var on = saved.analytics_storage === 'granted';
+          el.textContent = 'Status: ' + (on ? 'analytics enabled' : 'analytics disabled');
+        } catch (e) { /* ignore */ }
       })();
     </script>
   </body>

@@ -6,6 +6,10 @@
     <meta name="color-scheme" content="dark light" />
     <meta name="format-detection" content="telephone=no" />
     <meta http-equiv="x-ua-compatible" content="ie=edge" />
+
+    <!-- Consent banner + GTM/GA handling (loads GTM only after user accepts) -->
+    <script defer src="/js/consent.js"></script>
+
     <title>Crewdog.demo — Support</title>
     <style>
       :root {
@@ -16,6 +20,7 @@
         --accent: #3b82f6;
         --border: #1f2937;
         --input: #0f172a;
+        --footer: #151a1f; /* added to match other pages */
       }
       [data-theme="light"] {
         --bg: #ffffff;
@@ -25,6 +30,7 @@
         --accent: #2563eb;
         --border: #e5e7eb;
         --input: #f1f5f9;
+        --footer: #f2f2f2; /* added to match other pages */
       }
 
       * { box-sizing: border-box; }
@@ -69,7 +75,7 @@
       .success { color: #065f46; background: #d1fae5; border: 1px solid #a7f3d0; padding: 10px; border-radius: 8px; font-size: 13px; display:none; }
       .gc-error { color: #b91c1c; background: #fee2e2; border: 1px solid #fecaca; padding: 10px; border-radius: 8px; font-size: 13px; display:none; }
 
-      /* Footer (exactly as in run.html/home) */
+      /* Footer (matches other pages) */
       .footer {
         flex-shrink: 0;
         width: 100%;
@@ -152,12 +158,15 @@
       </main>
 
       <footer class="footer">
-        <nav class="footer-nav" aria-label="Footer">
-          <a href="./Privacy_policy.html">Privacy Policy</a>
-          <a href="./Terms_of_use.html">Terms of Use</a>
-          <a href="./FAQ.html">FAQ</a>
-          <a href="./Support.html">Support</a>
-        </nav>
+       <nav class="footer-nav" aria-label="Footer">
+  <a href="./Privacy_policy.html">Privacy Policy</a>
+  <a href="./Terms_of_use.html">Terms of Use</a>
+  <a href="./FAQ.html">FAQ</a>
+  <a href="./Support.html">Support</a>
+
+  <!-- New: opens the banner without changing the current choice -->
+  <a href="#" onclick="gcConsent && gcConsent.open(); return false;">Manage cookies</a>
+</nav>
         <div class="footer-copy">© Crewdog</div>
       </footer>
     </div>
@@ -181,7 +190,7 @@
         }
       })();
 
-      // Support form submit -> POST to N8N webhook, show success message
+      // Support form submit -> POST to N8N webhook, show success message + analytics event
       (function(){
         var form = document.getElementById('support-form');
         var success = document.getElementById('support-success');
@@ -211,8 +220,14 @@
             var fd = new FormData(form);
             const resp = await fetch(form.getAttribute('action'), { method: 'POST', body: fd });
             if (!resp.ok) throw new Error('Request failed: ' + resp.status);
+
             form.reset();
             show(success, true);
+
+            // === GA4 (via GTM) — log successful support submission ===
+            window.dataLayer = window.dataLayer || [];
+            window.dataLayer.push({ event: 'support_submit' });
+
           } catch (e) {
             errorBox.textContent = 'Something went wrong. Please try again.';
             show(errorBox, true);
