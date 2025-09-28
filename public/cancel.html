@@ -1,12 +1,63 @@
 <!-- cancel.html -->
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
   <head>
-    <meta charset="utf-8"><title>Cancelled</title>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge" />
+    <title>X-Ray Link — Checkout Cancelled</title>
+
+    <!-- Consent banner -->
     <script defer src="/js/consent.js"></script>
+
+    <!-- Reuse the centered card styling (same as verify/terms pages) -->
+    <link rel="stylesheet" href="/css/verify.css" />
   </head>
   <body>
-    <h1>Checkout cancelled</h1>
-    <p>No charge was made.</p>
+    <div class="container">
+      <!-- Topbar -->
+      <header class="topbar">
+        <a href="./index.html" class="brand" style="text-decoration:none; color:inherit;">
+          <span class="logo"></span>
+          <h1>Crewdog.demo</h1>
+        </a>
+        <p class="subtitle" aria-live="polite">Secure checkout</p>
+      </header>
+
+      <!-- Centered card -->
+      <main class="center-wrap">
+        <section class="card" role="status" aria-live="polite">
+          <h2>Checkout cancelled</h2>
+          <p>No charge was made. You can try again anytime.</p>
+
+          <div class="row" style="margin-top: 12px">
+            <a class="button" href="./account.html">Back to Account</a>
+            <a class="button primary" href="./pricing.html">See Plans</a>
+          </div>
+
+          <!-- Optional tiny helper text -->
+          <p class="subtitle" style="margin-top:14px">
+            If you believe this was a mistake, please contact support we’re happy to help.
+          </p>
+        </section>
+      </main>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <nav class="footer-nav" aria-label="Footer">
+        <a href="./Privacy_policy.html">Privacy Policy</a>
+        <a href="./Terms_of_use.html">Terms of Use</a>
+        <a href="./FAQ.html">FAQ</a>
+        <a href="./Support.html">Support</a>
+        <a href="#" onclick="gcConsent && gcConsent.open(); return false;">Manage cookies</a>
+      </nav>
+      <div class="footer-copy">© Crewdog</div>
+    </footer>
   </body>
 </html>

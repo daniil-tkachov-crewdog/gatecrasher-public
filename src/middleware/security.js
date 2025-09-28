@@ -7,29 +7,36 @@ const xss = require('xss-clean');
 function buildCsp() {
     const isProd = process.env.NODE_ENV === 'production';
 
+    // ✅ Allowlist your n8n endpoint(s)
+    const N8N_ENDPOINT = process.env.N8N_ENDPOINT || 'https://crewdog.app.n8n.cloud';
+    const n8nOrigin = (() => {
+        try { return new URL(N8N_ENDPOINT).origin; } catch { return 'https://crewdog.app.n8n.cloud'; }
+    })();
+
     const directives = {
         "default-src": ["'self'"],
 
         "script-src": [
             "'self'", "'unsafe-inline'",
             "https://js.stripe.com",
-            "https://www.googletagmanager.com",     // GTM container
-            "https://www.google-analytics.com",     // GA4
+            "https://www.googletagmanager.com",
+            "https://www.google-analytics.com",
             "https://cdn.jsdelivr.net",
             "https://esm.sh"
         ],
 
+        // ✅ Add n8n origin here for fetch/XHR/WebSockets
         "connect-src": [
             "'self'",
+            n8nOrigin,
             "https://api.stripe.com",
             "https://lurzlzhpjxcxhuoqpbok.supabase.co",
             "wss://lurzlzhpjxcxhuoqpbok.supabase.co",
             "https://www.google-analytics.com",
             "https://region1.google-analytics.com",
-            "https://www.googletagmanager.com"      // GTM bootstrap + preview handshake
+            "https://www.googletagmanager.com"
         ],
 
-        // GTM iframe + Stripe
         "frame-src": [
             "'self'",
             "https://js.stripe.com",
@@ -45,22 +52,22 @@ function buildCsp() {
 
         "style-src": [
             "'self'", "'unsafe-inline'"
-            // dev-only additions are appended below
         ],
 
-        "font-src": ["'self'", "data:"],          // dev-only additions appended below
+        "font-src": ["'self'", "data:"],
         "object-src": ["'none'"],
         "base-uri": ["'self'"],
-        "form-action": ["'self'"]
+
+        // ✅ Add n8n origin here to allow form POSTs (good fallback)
+        "form-action": ["'self'", n8nOrigin]
     };
 
     if (!isProd) {
-        // Allow Tag Assistant + debug badge assets during GTM Preview on localhost/staging
         directives["connect-src"].push("https://tagassistant.google.com");
         directives["frame-src"].push("https://tagassistant.google.com");
         directives["style-src"].push(
-            "https://www.googletagmanager.com",     // debug badge CSS
-            "https://fonts.googleapis.com"          // fonts CSS
+            "https://www.googletagmanager.com",
+            "https://fonts.googleapis.com"
         );
         directives["font-src"].push("https://fonts.gstatic.com");
         directives["img-src"].push("https://ssl.gstatic.com");
@@ -70,7 +77,11 @@ function buildCsp() {
 }
 
 const corsOptions = {
-    origin: ['http://localhost:3000'],
+    // Add your production origin(s) too, not just localhost
+    origin: [
+        'http://localhost:3000',
+        process.env.APP_ORIGIN || 'https://crewdog.app'
+    ],
     credentials: true
 };
 
@@ -91,7 +102,6 @@ function applySecurity(app) {
         crossOriginResourcePolicy: { policy: 'same-site' }
     }));
 
-    // Skip xss-clean for Stripe webhook (needs raw body)
     app.use((req, res, next) => {
         if (req.originalUrl === '/api/stripe/webhook') return next();
         return xss()(req, res, next);

@@ -249,13 +249,3 @@ textarea {
         gap: 10px;
     }
 }
-
-/* iOS zoom guard */
-@supports (-webkit-touch-callout: none) {
-
-    .button,
-    input,
-    textarea {
-        font-size: 16px;
-    }
-}

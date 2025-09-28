@@ -1,27 +1,53 @@
+/* =========================================================
+   Crewdog.demo — Terms (terms.css)
+   - Consistent with login/privacy styling
+   - Dark + Light themes, frosted card, gradient CTA
+   - No functionality changes; same class names
+   ========================================================= */
+
+/* ---------------- Theme Tokens ---------------- */
 :root {
-    --bg: #0b0e11;
-    --card: #12161c;
-    --text: #e6eaf2;
+    /* Dark default */
+    --bg: #0a0f1c;
+    --bg-2: #0f172a;
+    --card: rgba(17, 25, 40, .78);
+    --text: #f8fafc;
     --muted: #94a3b8;
     --accent: #3b82f6;
-    --border: #1f2937;
-    --input: #0f172a;
-    --footer: #151a1f;
-    /* slightly brighter than black for dark theme */
+    --accent-2: #06b6d4;
+    --border: rgba(255, 255, 255, .08);
+    --input: rgba(2, 6, 23, .60);
+    --footer: #0f1319;
+
+    --radius: 16px;
+    --blur: blur(16px);
+    --transition: all .28s cubic-bezier(.2, .6, .2, 1);
+    --shadow-1: 0 10px 28px rgba(0, 0, 0, .55);
+    --shadow-2: 0 24px 60px rgba(0, 0, 0, .65);
+
+    --gradient: linear-gradient(135deg, #3b82f6, #6366f1, #06b6d4);
+    --grid-line: rgba(255, 255, 255, .04);
 }
 
-[data-theme="light"] {
-    --bg: #ffffff;
-    --card: #f7f8fa;
+/* Light theme overrides */
+html[data-theme="light"] {
+    --bg: #f7f9fc;
+    --bg-2: #ffffff;
+    --card: rgba(255, 255, 255, .86);
     --text: #0f172a;
-    --muted: #475569;
+    --muted: #5b677a;
     --accent: #2563eb;
-    --border: #e5e7eb;
-    --input: #f1f5f9;
-    --footer: #f2f2f2;
-    /* slightly darker than white for light theme */
+    --accent-2: #06b6d4;
+    --border: #e6eaf0;
+    --input: rgba(241, 245, 249, .75);
+    --footer: #eef2f7;
+
+    --shadow-1: 0 6px 22px rgba(16, 24, 40, .08);
+    --shadow-2: 0 18px 44px rgba(16, 24, 40, .12);
+    --grid-line: rgba(0, 0, 0, .04);
 }
 
+/* ---------------- Base ---------------- */
 * {
     box-sizing: border-box;
 }
@@ -33,88 +59,69 @@ body {
 
 body {
     margin: 0;
-    font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial;
-    background: var(--bg);
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
     color: var(--text);
+    background:
+        radial-gradient(1100px 760px at 18% -8%, rgba(96, 165, 250, .12), transparent 60%),
+        radial-gradient(900px 700px at 100% 0%, rgba(34, 211, 238, .10), transparent 60%),
+        radial-gradient(720px 720px at -5% 88%, rgba(167, 139, 250, .09), transparent 60%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
     -webkit-font-smoothing: antialiased;
-    -webkit-text-size-adjust: 100%;
+    -moz-osx-font-smoothing: grayscale;
     display: flex;
     flex-direction: column;
     min-height: 100vh;
 }
 
+/* Subtle background grid */
+body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+    background-image:
+        linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+    background-size: 24px 24px, 24px 24px;
+    mix-blend-mode: soft-light;
+    opacity: .25;
+}
+
 .container {
     max-width: 960px;
     margin: 0 auto;
-    padding: 16px;
+    padding: 24px clamp(16px, 3vw, 28px);
     flex: 1 0 auto;
 }
 
+/* ---------------- Topbar ---------------- */
 .topbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding: 12px 0;
+    padding: 8px 0 18px;
 }
 
 .brand {
     display: flex;
     align-items: center;
     gap: 10px;
-    font-weight: 700;
+    font-weight: 800;
 }
 
 .logo {
     width: 28px;
     height: 28px;
-    border-radius: 8px;
-    background: linear-gradient(135deg, var(--accent), #00c2ff);
+    border-radius: 10px;
+    background: conic-gradient(from 180deg at 50% 50%, var(--accent), var(--accent-2), var(--accent));
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, .08) inset, 0 8px 18px rgba(0, 0, 0, .25);
 }
 
 .brand h1 {
     font-size: 18px;
     margin: 0;
-}
-
-.toggle {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    border: 1px solid var(--border);
-    background: var(--card);
-    padding: 6px 10px;
-    border-radius: 999px;
-    cursor: pointer;
-}
-
-.toggle input {
-    appearance: none;
-    width: 36px;
-    height: 20px;
-    border-radius: 999px;
-    background: var(--border);
-    position: relative;
-}
-
-.toggle input:checked {
-    background: var(--accent);
-}
-
-.toggle input::after {
-    content: "";
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 16px;
-    height: 16px;
-    border-radius: 999px;
-    background: #fff;
-    transition: transform .2s ease;
-}
-
-.toggle input:checked::after {
-    transform: translateX(16px);
 }
 
 .subtitle {
@@ -123,56 +130,148 @@ body {
     margin: 0;
 }
 
-.grid {
+@media (max-width: 840px) {
+    .topbar {
+        flex-wrap: wrap;
+    }
+}
+
+/* ---------------- Centered card ---------------- */
+.center-wrap {
     display: grid;
-    gap: 16px;
+    place-items: center;
+    padding: 32px 0 40px;
 }
 
 .card {
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 16px;
+    border-radius: var(--radius);
+    padding: 24px;
+    width: 100%;
+    max-width: 680px;
+    /* a bit wider for Terms */
+    text-align: left;
+    /* legal pages read better left-aligned */
+    -webkit-backdrop-filter: var(--blur);
+    backdrop-filter: var(--blur);
+    box-shadow: var(--shadow-1);
+    transition: var(--transition);
+    overflow: clip;
 }
 
-/* --- Legal page tweaks --- */
-.legal h1 {
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-2);
+}
+
+.card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    border-radius: inherit;
+    background: linear-gradient(135deg, rgba(96, 165, 250, .35), rgba(34, 211, 238, .22), rgba(167, 139, 250, .20));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: .22;
+    pointer-events: none;
+}
+
+.card h2 {
     margin: 0 0 8px;
     font-size: 22px;
 }
 
-.legal .meta {
+.card p {
+    margin: 0 0 16px;
     color: var(--muted);
-    font-size: 13px;
-    margin-bottom: 12px;
+    font-size: 14px;
+    line-height: 1.7;
 }
 
-.legal h2 {
+/* ---------------- Legal typography blocks ---------------- */
+.terms h3 {
     font-size: 18px;
-    margin: 18px 0 8px;
+    margin: 20px 0 8px;
 }
 
-.legal p,
-.legal li {
-    color: var(--text);
-    line-height: 1.6;
+.terms p,
+.terms li {
+    line-height: 1.75;
+    margin: 0 0 12px;
 }
 
-.legal ol,
-.legal ul {
-    padding-left: 18px;
+.terms ol,
+.terms ul {
+    padding-left: 20px;
 }
 
-.toc a {
+.terms a {
     color: var(--accent);
     text-decoration: none;
 }
 
-.toc a:hover {
+.terms a:hover {
     text-decoration: underline;
 }
 
-/* ===== Footer (full-width, theme-aware) ===== */
+/* ---------------- Actions ---------------- */
+.row {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 12px;
+}
+
+/* Buttons */
+.button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: linear-gradient(180deg, var(--card), rgba(0, 0, 0, .02));
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 12px 16px;
+    border-radius: 14px;
+    cursor: pointer;
+    text-decoration: none;
+    min-width: 140px;
+    font-weight: 700;
+    box-shadow: var(--shadow-1);
+    transition: var(--transition);
+}
+
+.button:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-2);
+}
+
+.button.primary {
+    background: var(--gradient);
+    border-color: transparent;
+    color: #fff;
+    border-radius: 999px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, .15), 0 12px 28px rgba(59, 130, 246, .28);
+}
+
+.button.primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .2), 0 16px 42px rgba(59, 130, 246, .34);
+}
+
+/* Focus ring accessibility */
+a:focus-visible,
+.button:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent) 55%, transparent), var(--shadow-2);
+}
+
+/* ---------------- Footer ---------------- */
 .footer {
     flex-shrink: 0;
     width: 100%;
@@ -208,10 +307,6 @@ body {
 }
 
 @media (max-width: 840px) {
-    .topbar {
-        flex-wrap: wrap;
-    }
-
     .footer-nav {
         flex-direction: column;
         align-items: center;
@@ -219,13 +314,24 @@ body {
     }
 }
 
-/* iOS zoom guard */
-@supports (-webkit-touch-callout: none) {
+/* ---------------- Success banner (reused) ---------------- */
+.success-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: center;
+    background: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+    padding: 10px 12px;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    font-weight: 700;
+}
 
-    .button,
-    input,
-    select,
-    textarea {
+/* ---------------- Mobile font-size fix (iOS) ---------------- */
+@supports (-webkit-touch-callout: none) {
+    .button {
         font-size: 16px;
     }
 }
