@@ -50,3 +50,5 @@ out/
 # Others
 *.tgz
 *.tar.gz
+
+.vercel
