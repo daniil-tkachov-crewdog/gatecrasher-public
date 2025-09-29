@@ -1,78 +1,19 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en" data-theme="light">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
     <meta name="color-scheme" content="light" />
     <meta name="format-detection" content="telephone=no" />
     <meta http-equiv="x-ua-compatible" content="ie=edge" />
+
+    <script defer src="/js/consent.js"></script>
+
     <title>X-Ray Link — Email Verified</title>
-    <style>
-      :root {
-        --bg: #ffffff;
-        --card: #f7f8fa;
-        --text: #0f172a;
-        --muted: #475569;
-        --accent: #2563eb;
-        --border: #e5e7eb;
-        --input: #f1f5f9;
-        --footer: #f2f2f2;
-      }
-
-      * { box-sizing: border-box; }
-      html, body { height: 100%; }
-      body {
-        margin: 0;
-        font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial;
-        background: var(--bg); color: var(--text);
-        -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%;
-        display: flex; flex-direction: column; min-height: 100vh;
-      }
-      .container { max-width: 960px; margin: 0 auto; padding: 16px; flex: 1 0 auto; }
-      .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; }
-      .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; }
-      .logo { width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(135deg, var(--accent), #00c2ff); }
-      .brand h1 { font-size: 18px; margin: 0; }
-      .subtitle { font-size: 13px; color: var(--muted); margin: 0; }
-
-      /* Centered card */
-      .center-wrap { display: grid; place-items: center; padding: 32px 0 40px; }
-      .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; width: 100%; max-width: 560px; text-align: center; }
-      .card h2 { margin: 0 0 8px; font-size: 22px; }
-      .card p { margin: 0 0 16px; color: var(--muted); font-size: 14px; line-height: 1.6; }
-
-      .row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
-      .button {
-        display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-        background: var(--card); border: 1px solid var(--border); color: var(--text);
-        padding: 10px 14px; border-radius: 10px; cursor: pointer; text-decoration: none;
-        min-width: 140px;
-      }
-      .button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-
-      /* Footer */
-      .footer {
-        flex-shrink: 0;
-        width: 100%;
-        background: var(--footer);
-        padding: 16px 12px 24px;
-        border-top: 1px solid var(--border);
-        font-size: 12px;
-        text-align: center;
-        margin: 0;
-      }
-      .footer-nav { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-bottom: 8px; }
-      .footer a { color: var(--text); text-decoration: none; font-weight: 600; }
-      .footer a:hover, .footer a:focus { text-decoration: underline; }
-      .footer-copy { color: var(--muted); }
-
-      /* Success banner */
-      .success-banner { 
-        display: flex; align-items: center; gap: 10px; justify-content: center; 
-        background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; 
-        padding: 10px 12px; border-radius: 10px; margin-bottom: 12px; font-weight: 600; 
-      }
-    </style>
+    <link rel="stylesheet" href="/css/verify.css" />
   </head>
   <body>
     <div class="container">
@@ -84,14 +25,31 @@
       </header>
 
       <main class="center-wrap">
-        <section class="card" aria-live="polite" id="success-section" style="display:block">
+        <section
+          class="card"
+          aria-live="polite"
+          id="success-section"
+          style="display: block"
+        >
           <div class="success-banner">✓ Email verified successfully</div>
           <h2>You're all set</h2>
           <p>Your sign-in email has been verified. You can continue.</p>
-          <div class="row" style="margin-top:10px">
+          <div class="row" style="margin-top: 10px">
             <a class="button primary" href="./run.html">Go to Run</a>
           </div>
-          <p id="err" style="display:none; margin-top:14px; color:#b91c1c; background:#fee2e2; border:1px solid #fecaca; padding:10px; border-radius:8px; font-size:13px;"></p>
+          <p
+            id="err"
+            style="
+              display: none;
+              margin-top: 14px;
+              color: #b91c1c;
+              background: #fee2e2;
+              border: 1px solid #fecaca;
+              padding: 10px;
+              border-radius: 8px;
+              font-size: 13px;
+            "
+          ></p>
         </section>
       </main>
     </div>
@@ -102,45 +60,16 @@
         <a href="./Terms_of_use.html">Terms of Use</a>
         <a href="./FAQ.html">FAQ</a>
         <a href="./Support.html">Support</a>
+
+        <!-- New: opens the banner without changing the current choice -->
+        <a href="#" onclick="gcConsent && gcConsent.open(); return false;"
+          >Manage cookies</a
+        >
       </nav>
       <div class="footer-copy">© Crewdog</div>
     </footer>
 
-    <!-- Supabase -->
-    <script type="module">
-      import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-      const supabase = createClient(
-        'https://lurzlzhpjxcxhuoqpbok.supabase.co',
-        'sb_publishable_x0hlg96FMQ9arkjGd2F9Pw_yQ-fLI3r'
-      );
-
-      (async () => {
-        try {
-          const hash = window.location.hash.substring(1);
-          const params = new URLSearchParams(hash);
-          const access_token = params.get('access_token');
-          const refresh_token = params.get('refresh_token');
-          const type = params.get('type');
-
-          if (!access_token || !refresh_token) return;
-          if (type !== 'signup' && type !== 'email_change') return;
-
-          const { error } = await supabase.auth.setSession({ access_token, refresh_token });
-          if (error) throw error;
-
-          if (window.history.replaceState) {
-            const clean = window.location.origin + window.location.pathname;
-            window.history.replaceState({}, document.title, clean);
-          }
-        } catch (e) {
-          const box = document.getElementById('err');
-          if (box) {
-            box.style.display = 'block';
-            box.textContent = 'Verification failed: ' + (e?.message || e);
-          }
-        }
-      })();
-    </script>
+    <!-- Page entry -->
+    <script type="module" src="/js/verify.js"></script>
   </body>
 </html>

@@ -1,0 +1,543 @@
+/* =========================================================
+   Crewdog.demo — Premium Search Form (run.css)
+   - Consistent with home.css styling
+   - Dark + Light themes
+   - Glassmorphism inputs, gradient CTA, custom checkbox
+   - No functionality changes
+   ========================================================= */
+
+/* ---------------- Theme Tokens ---------------- */
+:root {
+    /* Light */
+    --bg: #f7f9fc;
+    --bg-2: #ffffff;
+    --card: rgba(255, 255, 255, 0.72);
+    --text: #0f172a;
+    --muted: #5b677a;
+    --accent: #2563eb;
+    --accent-2: #06b6d4;
+    --border: #e6eaf0;
+    --ring: rgba(37, 99, 235, .45);
+    --shadow-1: 0 4px 20px rgba(16, 24, 40, 0.06);
+    --shadow-2: 0 16px 36px rgba(16, 24, 40, 0.10);
+    --input: rgba(241, 245, 249, 0.65);
+    --footer: #eef2f7;
+
+    /* Shared */
+    --radius: 16px;
+    --radius-sm: 12px;
+    --blur: blur(16px);
+    --transition: all .28s cubic-bezier(.2, .6, .2, 1);
+    --gradient: linear-gradient(135deg, #60a5fa, #3b82f6);
+
+    /* Stat/decoration */
+    --grid-line: rgba(0, 0, 0, .04);
+}
+
+html[data-theme="dark"] {
+    --bg: #0a0f1c;
+    --bg-2: #0f172a;
+    --card: rgba(17, 25, 40, 0.78);
+    --text: #f8fafc;
+    --muted: #94a3b8;
+    --accent: #3b82f6;
+    --accent-2: #06b6d4;
+    --border: rgba(255, 255, 255, .08);
+    --ring: rgba(56, 189, 248, .55);
+    --shadow-1: 0 6px 24px rgba(0, 0, 0, 0.6);
+    --shadow-2: 0 14px 40px rgba(0, 0, 0, .65);
+    --input: rgba(2, 6, 23, 0.55);
+    --footer: #0f1319;
+    --gradient: linear-gradient(135deg, #3b82f6, #6366f1, #06b6d4);
+    --grid-line: rgba(255, 255, 255, .04);
+}
+
+/* ---------------- Base / Background ---------------- */
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    height: 100%;
+}
+
+body {
+    margin: 0;
+    font-family: 'Inter', 'Satoshi', 'Geist', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
+    color: var(--text);
+    line-height: 1.6;
+    background:
+        radial-gradient(1200px 800px at 20% -10%, rgba(96, 165, 250, .12), transparent 60%),
+        radial-gradient(900px 700px at 100% 0%, rgba(34, 211, 238, .10), transparent 60%),
+        radial-gradient(700px 700px at -5% 85%, rgba(167, 139, 250, .09), transparent 60%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    isolation: isolate;
+}
+
+/* Subtle grid */
+body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+    background-image:
+        linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+    background-size: 24px 24px, 24px 24px;
+    mix-blend-mode: soft-light;
+    opacity: .25;
+}
+
+/* ---------------- Layout ---------------- */
+.container {
+    width: 100%;
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 24px clamp(16px, 3vw, 28px);
+    flex: 1 0 auto;
+}
+
+.grid {
+    display: grid;
+    gap: 22px;
+}
+
+/* ---------------- Topbar ---------------- */
+.topbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0 18px;
+}
+
+.topbar .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 800;
+    letter-spacing: .2px;
+    color: inherit;
+    text-decoration: none;
+}
+
+.logo {
+    width: 28px;
+    height: 28px;
+    border-radius: 10px;
+    background: conic-gradient(from 180deg at 50% 50%, var(--accent), var(--accent-2), var(--accent));
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, .08) inset, 0 8px 18px rgba(0, 0, 0, .25);
+    position: relative;
+}
+
+.logo::after {
+    content: "";
+    position: absolute;
+    inset: 2px;
+    border-radius: 8px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, .20), rgba(255, 255, 255, 0));
+    mix-blend-mode: screen;
+}
+
+.topbar h1 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.toggle {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    -webkit-backdrop-filter: var(--blur);
+    backdrop-filter: var(--blur);
+    padding: 6px 10px;
+    border-radius: 999px;
+    cursor: pointer;
+    box-shadow: var(--shadow-1);
+}
+
+.toggle .subtitle {
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.toggle input {
+    appearance: none;
+    width: 40px;
+    height: 22px;
+    border-radius: 999px;
+    background: #e2e8f0;
+    position: relative;
+    outline: none;
+    transition: background .2s ease;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .05);
+}
+
+html[data-theme="dark"] .toggle input {
+    background: #111827;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .06);
+}
+
+.toggle input:checked {
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+}
+
+.toggle input::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    background: #fff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, .25);
+    transform: translateX(0);
+    transition: transform .22s cubic-bezier(.2, .6, .2, 1);
+}
+
+.toggle input:checked::after {
+    transform: translateX(18px);
+}
+
+.button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    cursor: pointer;
+    background: linear-gradient(180deg, var(--card), rgba(0, 0, 0, .02));
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-weight: 650;
+    box-shadow: var(--shadow-1);
+    transition: var(--transition);
+}
+
+.button:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-2);
+}
+
+/* ---------------- Cards ---------------- */
+.card {
+    position: relative;
+    background: var(--card);
+    border: 1px solid var(--border);
+    -webkit-backdrop-filter: var(--blur);
+    backdrop-filter: var(--blur);
+    border-radius: var(--radius);
+    padding: 22px;
+    box-shadow: var(--shadow-1);
+    transition: var(--transition);
+    overflow: clip;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-2);
+}
+
+.card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    border-radius: inherit;
+    background: linear-gradient(135deg, rgba(96, 165, 250, .35), rgba(34, 211, 238, .22), rgba(167, 139, 250, .20));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    opacity: .22;
+}
+
+.subtitle {
+    font-size: 13px;
+    color: var(--muted);
+    margin: 0;
+}
+
+label {
+    color: var(--muted);
+    font-size: 14px;
+}
+
+/* ---------------- Form Layout ---------------- */
+.stack {
+    display: grid;
+    gap: 12px;
+}
+
+.row-3 {
+    display: grid;
+    grid-template-columns: 1.2fr .8fr 1fr;
+    gap: 18px;
+}
+
+@media (max-width: 900px) {
+    .row-3 {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ---------------- Inputs & Textarea ---------------- */
+input[type="text"],
+textarea,
+select {
+    width: 100%;
+    color: var(--text);
+    background: var(--input);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px 14px;
+    outline: none;
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04);
+    transition: var(--transition);
+}
+
+textarea {
+    min-height: 220px;
+    resize: vertical;
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: color-mix(in oklab, var(--muted) 80%, transparent);
+    opacity: .9;
+}
+
+input:hover,
+textarea:hover,
+select:hover {
+    border-color: color-mix(in oklab, var(--accent) 28%, var(--border));
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+    border-color: color-mix(in oklab, var(--accent) 55%, var(--border));
+    box-shadow: 0 0 0 4px var(--ring), 0 10px 24px rgba(0, 0, 0, .12);
+}
+
+/* ---------------- Custom Checkbox (toggle box style) ---------------- */
+.inline-check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.inline-check input[type="checkbox"] {
+    appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: linear-gradient(180deg, var(--card), rgba(0, 0, 0, .02));
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04);
+    position: relative;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.inline-check input[type="checkbox"]:hover {
+    border-color: color-mix(in oklab, var(--accent) 35%, var(--border));
+    box-shadow: 0 6px 16px rgba(0, 0, 0, .12), inset 0 1px 0 rgba(255, 255, 255, .06);
+}
+
+.inline-check input[type="checkbox"]::after {
+    content: "";
+    position: absolute;
+    inset: 4px;
+    border-radius: 6px;
+    background: var(--gradient);
+    transform: scale(0);
+    transition: transform .18s ease;
+}
+
+.inline-check input[type="checkbox"]:checked::after {
+    transform: scale(1);
+}
+
+.inline-check label {
+    margin: 0;
+    color: var(--text);
+}
+
+/* ---------------- Primary CTA ---------------- */
+button,
+.button {
+    font-size: 16px;
+}
+
+button.primary {
+    --cta-glow: 0 12px 28px rgba(59, 130, 246, .35);
+    border: none;
+    outline: none;
+    background: var(--gradient);
+    color: #fff;
+    padding: 12px 18px;
+    border-radius: 999px;
+    font-weight: 700;
+    letter-spacing: .2px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, .15), var(--cta-glow);
+    transition: var(--transition);
+}
+
+button.primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .2), 0 14px 40px rgba(59, 130, 246, .35);
+}
+
+button.primary:active {
+    transform: translateY(0);
+}
+
+button.primary:focus-visible {
+    box-shadow: 0 0 0 4px var(--ring), 0 14px 40px rgba(59, 130, 246, .35);
+}
+
+button:disabled {
+    opacity: .7;
+    cursor: not-allowed;
+}
+
+/* ---------------- Result / Panels (unchanged structure) ---------------- */
+.result {
+    margin-top: 18px;
+}
+
+.panel {
+    background: var(--card);
+    border: 1px dashed var(--border);
+    -webkit-backdrop-filter: var(--blur);
+    backdrop-filter: var(--blur);
+    border-radius: var(--radius);
+    padding: 14px;
+    overflow: auto;
+}
+
+/* GC result blocks (keep your existing class names) */
+.gc-header {
+    margin-bottom: 20px;
+}
+
+.gc-title {
+    font-size: 22px;
+    font-weight: 800;
+    margin: 0 0 6px;
+}
+
+.gc-sub a {
+    color: var(--text);
+    text-decoration: none;
+    border-bottom: 1px solid var(--border);
+}
+
+.gc-sub.clues {
+    margin-top: 16px;
+}
+
+.gc-sub.clues h2 {
+    font-size: 18px;
+    margin: 0 0 6px;
+    color: var(--text);
+}
+
+.gc-sub.clues p {
+    margin: 0;
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.5;
+}
+
+.gc-section {
+    margin: 26px 0 18px;
+}
+
+.gc-section h2 {
+    font-size: 18px;
+    margin: 0 0 12px;
+}
+
+.gc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+}
+
+.gc-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    box-shadow: var(--shadow-1);
+}
+
+/* ---------------- Footer ---------------- */
+.footer {
+    flex-shrink: 0;
+    width: 100%;
+    background: var(--footer);
+    padding: 16px 12px 24px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.footer-nav {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+}
+
+.footer a {
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.footer a:hover,
+.footer a:focus {
+    text-decoration: underline;
+}
+
+/* ---------------- Responsive ---------------- */
+@media (max-width: 760px) {
+    .card {
+        padding: 16px;
+    }
+
+    button.primary {
+        width: 100%;
+    }
+}
+
+@supports (-webkit-touch-callout: none) {
+
+    select,
+    textarea {
+        font-size: 16px;
+    }
+
+    /* prevent iOS zoom */
+}

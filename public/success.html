@@ -1,0 +1,63 @@
+<!-- success.html -->
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge" />
+    <title>X-Ray Link — Payment Success</title>
+
+    <!-- Consent banner -->
+    <script defer src="/js/consent.js"></script>
+
+    <!-- Reuse verify.css for card + layout -->
+    <link rel="stylesheet" href="/css/verify.css" />
+  </head>
+  <body>
+    <div class="container">
+      <!-- Topbar -->
+      <header class="topbar">
+        <a href="./index.html" class="brand" style="text-decoration:none; color:inherit;">
+          <span class="logo"></span>
+          <h1>Crewdog.demo</h1>
+        </a>
+        <p class="subtitle">Subscription confirmed</p>
+      </header>
+
+      <!-- Centered card -->
+      <main class="center-wrap">
+        <section class="card" aria-live="polite">
+          <div class="success-banner">🎉 Payment successful</div>
+          <h2>Thanks for subscribing</h2>
+          <p>You now have access to <strong>25 searches / month</strong>.</p>
+
+          <div class="row" style="margin-top: 14px">
+            <a class="button primary" href="./run.html">Start Searching</a>
+            <a class="button" href="./account.html">Go to Account</a>
+          </div>
+
+          <p class="subtitle" style="margin-top:14px">
+            Need help? <a href="./Support.html">Contact Support</a>.
+          </p>
+        </section>
+      </main>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <nav class="footer-nav" aria-label="Footer">
+        <a href="./Privacy_policy.html">Privacy Policy</a>
+        <a href="./Terms_of_use.html">Terms of Use</a>
+        <a href="./FAQ.html">FAQ</a>
+        <a href="./Support.html">Support</a>
+        <a href="#" onclick="gcConsent && gcConsent.open(); return false;">Manage cookies</a>
+      </nav>
+      <div class="footer-copy">© Crewdog</div>
+    </footer>
+  </body>
+</html>
