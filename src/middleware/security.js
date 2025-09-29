@@ -7,12 +7,17 @@ const xss = require('xss-clean');
 function buildCsp() {
     const isProd = process.env.NODE_ENV === 'production';
 
-    // External endpoints
+    // ---- External endpoints (from env, with safe fallbacks) ----
     const SUPABASE_URL = process.env.SUPABASE_URL || '';
     let supabaseHost = '';
     try { supabaseHost = new URL(SUPABASE_URL).host; } catch (_) { }
 
-    const N8N_ENDPOINT = process.env.N8N_ENDPOINT || 'https://crewdog.app.n8n.cloud';
+    // accept either var name
+    const N8N_ENDPOINT =
+        process.env.N8N_ENDPOINT ||
+        process.env.N8N_ENDPOINT_URL ||
+        'https://crewdog.app.n8n.cloud';
+
     let n8nOrigin = 'https://crewdog.app.n8n.cloud';
     try { n8nOrigin = new URL(N8N_ENDPOINT).origin; } catch (_) { }
 
@@ -95,15 +100,15 @@ function applySecurity(app) {
         process.env.APP_ORIGIN ||
         'https://crewdog.app';
 
-    // Single CORS middleware
+    // Single CORS middleware (no duplicates)
     const allowedOrigins = [
-        PROD_ORIGIN,            // https://crewdog.app
-        'http://localhost:3000' // dev
+        PROD_ORIGIN,             // https://crewdog.app
+        'http://localhost:3000'  // dev
     ].filter(Boolean);
 
     app.use(cors({
         origin: allowedOrigins,
-        credentials: false // set to true only if using cookies/auth headers
+        credentials: false // set true only if you're using cookies/Authorization headers cross-site
     }));
 
     // Helmet with CSP

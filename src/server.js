@@ -12,51 +12,40 @@ const accountRoutes = require('./routes/account.routes');
 
 const app = express();
 
-// Quick sanity log so we can see the secret is actually loaded
-console.log('[BOOT] STRIPE_WEBHOOK_SECRET present?', !!(process.env.STRIPE_WEBHOOK_SECRET || '').trim());
-
-// Security (Helmet, CORS, rate limit, xss-clean)
+// Apply security middlewares (Helmet, CORS, rate limit, xss-clean)
 applySecurity(app);
 
-// 🔎 Global request logger
-app.use((req, res, next) => {
-  console.log(`[REQ] ${req.method} ${req.originalUrl}`);
-  console.log(`      IP: ${req.ip}, Host: ${req.get('host')}, Origin: ${req.get('origin') || 'n/a'}`);
-  console.log(`      UA: ${req.get('user-agent')}`);
-  next();
-});
-
-// Static (optional)
+// Serve static files (only useful for local dev; in prod use Render static site)
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
-// Use JSON for everything EXCEPT the Stripe webhook path
+// Parse JSON for all requests except Stripe webhook
 app.use((req, res, next) => {
-  if (req.originalUrl === '/api/stripe/webhook') return next(); // do not parse
+  if (req.originalUrl === '/api/stripe/webhook') return next();
   return express.json()(req, res, next);
 });
 
-// 🔎 Health check endpoint
-app.get('/api/ping', (req, res) => {
-  console.log('[PING] Health check hit');
+// Health check endpoint
+app.get('/api/ping', (_req, res) => {
   res.json({ ok: true, timestamp: new Date().toISOString() });
 });
 
-// Mount routers exactly once
+// Mount routers
 app.use('/api/stripe', stripeRoutes);
 app.use('/api/n8n', n8nRoutes);
 app.use('/api/account', accountRoutes);
 
-// Centralized error handler (minimal)
+// Centralized error handler
 app.use((err, req, res, next) => {
   console.error('[ERROR]', err);
   res.status(err.status || 500).json({ error: err.message || 'Internal Server Error' });
 });
 
-const PORT = process.env.PORT || 3000;
+// Render health check
 app.get('/healthz', (_req, res) => res.status(200).send('ok'));
 
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
+  console.log(`🚀 Server listening on port ${PORT}`);
 });
 
 module.exports = app;
