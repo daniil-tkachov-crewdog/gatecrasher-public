@@ -1,0 +1,68 @@
+services:
+  # ===== Express API =====
+  - type: web
+    name: gatecrasher-api
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: npm ci --ignore-scripts
+    startCommand: node src/server.js
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+
+      # ---- App / Frontend origins ----
+      - key: APP_BASE_URL            # e.g. https://gatecrasher-web.onrender.com
+        sync: false
+      - key: BASE_URL                # some code reads this too
+        sync: false
+
+      # ---- Supabase (server-side) ----
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+
+      # ---- Stripe ----
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_PRICE_ID
+        sync: false
+      - key: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+        sync: false
+
+      # ---- n8n ----
+      - key: N8N_WEBHOOK_URL
+        sync: false
+      - key: N8N_ENDPOINT            # security.js expects this name
+        sync: false
+
+      # ---- Admin / Analytics ----
+      - key: ADMIN_API_KEY
+        sync: false
+      - key: GTM_CONTAINER_ID
+        sync: false
+      - key: GA_MEASUREMENT_ID
+        sync: false
+
+  # ===== Static Frontend (CDN) =====
+  - type: static
+    name: gatecrasher-web
+    buildCommand: echo "Nothing to build"
+    staticPublishPath: public
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: public, max-age=300
+      - path: /css/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+      - path: /js/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable

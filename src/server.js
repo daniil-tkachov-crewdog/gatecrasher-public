@@ -53,6 +53,8 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 3000;
+app.get('/healthz', (_req, res) => res.status(200).send('ok'));
+
 app.listen(PORT, () => {
   console.log(`🚀 Server running at http://localhost:${PORT}`);
 });

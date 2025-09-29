@@ -7,17 +7,21 @@ const xss = require('xss-clean');
 function buildCsp() {
     const isProd = process.env.NODE_ENV === 'production';
 
-    // ✅ Allowlist your n8n endpoint(s)
+    // External endpoints
+    const SUPABASE_URL = process.env.SUPABASE_URL || '';
+    let supabaseHost = '';
+    try { supabaseHost = new URL(SUPABASE_URL).host; } catch (_) { }
+
     const N8N_ENDPOINT = process.env.N8N_ENDPOINT || 'https://crewdog.app.n8n.cloud';
-    const n8nOrigin = (() => {
-        try { return new URL(N8N_ENDPOINT).origin; } catch { return 'https://crewdog.app.n8n.cloud'; }
-    })();
+    let n8nOrigin = 'https://crewdog.app.n8n.cloud';
+    try { n8nOrigin = new URL(N8N_ENDPOINT).origin; } catch (_) { }
 
     const directives = {
         "default-src": ["'self'"],
 
         "script-src": [
-            "'self'", "'unsafe-inline'",
+            "'self'",
+            "'unsafe-inline'",
             "https://js.stripe.com",
             "https://www.googletagmanager.com",
             "https://www.google-analytics.com",
@@ -25,16 +29,25 @@ function buildCsp() {
             "https://esm.sh"
         ],
 
-        // ✅ Add n8n origin here for fetch/XHR/WebSockets
-        "connect-src": [
+        "style-src": [
             "'self'",
-            n8nOrigin,
-            "https://api.stripe.com",
-            "https://lurzlzhpjxcxhuoqpbok.supabase.co",
-            "wss://lurzlzhpjxcxhuoqpbok.supabase.co",
-            "https://www.google-analytics.com",
-            "https://region1.google-analytics.com",
+            "'unsafe-inline'",
+            "https://fonts.googleapis.com",
             "https://www.googletagmanager.com"
+        ],
+
+        "img-src": [
+            "'self'",
+            "data:",
+            "https://www.google-analytics.com",
+            "https://www.googletagmanager.com",
+            "https://www.gstatic.com"
+        ],
+
+        "font-src": [
+            "'self'",
+            "data:",
+            "https://fonts.gstatic.com"
         ],
 
         "frame-src": [
@@ -43,71 +56,77 @@ function buildCsp() {
             "https://www.googletagmanager.com"
         ],
 
-        "img-src": [
-            "'self'", "data:",
-            "https://www.google-analytics.com",
+        // XHR/fetch/WebSockets
+        "connect-src": [
+            "'self'",
+            SUPABASE_URL,                                   // Supabase REST
+            supabaseHost ? `wss://${supabaseHost}` : null,  // Supabase Realtime
+            "https://api.stripe.com",
+            "https://js.stripe.com",
             "https://www.googletagmanager.com",
-            "https://www.gstatic.com"
-        ],
+            "https://www.google-analytics.com",
+            "https://region1.google-analytics.com",
+            n8nOrigin
+        ].filter(Boolean),
 
-        "style-src": [
-            "'self'", "'unsafe-inline'"
-        ],
+        // Allow POSTs to n8n as a fallback
+        "form-action": ["'self'", n8nOrigin],
 
-        "font-src": ["'self'", "data:"],
+        "worker-src": ["'self'", "blob:"],
         "object-src": ["'none'"],
-        "base-uri": ["'self'"],
-
-        // ✅ Add n8n origin here to allow form POSTs (good fallback)
-        "form-action": ["'self'", n8nOrigin]
+        "base-uri": ["'self'"]
     };
 
     if (!isProd) {
         directives["connect-src"].push("https://tagassistant.google.com");
         directives["frame-src"].push("https://tagassistant.google.com");
-        directives["style-src"].push(
-            "https://www.googletagmanager.com",
-            "https://fonts.googleapis.com"
-        );
-        directives["font-src"].push("https://fonts.gstatic.com");
         directives["img-src"].push("https://ssl.gstatic.com");
     }
 
     return { useDefaults: true, directives, reportOnly: false };
 }
 
-const corsOptions = {
-    // Add your production origin(s) too, not just localhost
-    origin: [
-        'http://localhost:3000',
-        process.env.APP_ORIGIN || 'https://crewdog.app'
-    ],
-    credentials: true
-};
-
-const apiLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 300,
-    standardHeaders: true,
-    legacyHeaders: false
-});
-
 function applySecurity(app) {
     app.disable('x-powered-by');
-    app.use(cors(corsOptions));
 
+    // Your production origin
+    const PROD_ORIGIN =
+        process.env.APP_BASE_URL ||
+        process.env.APP_ORIGIN ||
+        'https://crewdog.app';
+
+    // Single CORS middleware
+    const allowedOrigins = [
+        PROD_ORIGIN,            // https://crewdog.app
+        'http://localhost:3000' // dev
+    ].filter(Boolean);
+
+    app.use(cors({
+        origin: allowedOrigins,
+        credentials: false // set to true only if using cookies/auth headers
+    }));
+
+    // Helmet with CSP
     app.use(helmet({
         contentSecurityPolicy: buildCsp(),
         referrerPolicy: { policy: 'no-referrer' },
-        crossOriginResourcePolicy: { policy: 'same-site' }
+        crossOriginResourcePolicy: { policy: 'same-site' },
+        crossOriginEmbedderPolicy: false // avoid COEP issues with CDN assets
     }));
 
+    // XSS: skip ONLY for Stripe raw-body route
     app.use((req, res, next) => {
         if (req.originalUrl === '/api/stripe/webhook') return next();
         return xss()(req, res, next);
     });
 
-    app.use(apiLimiter);
+    // Basic rate limit
+    app.use(rateLimit({
+        windowMs: 15 * 60 * 1000,
+        max: 300,
+        standardHeaders: true,
+        legacyHeaders: false
+    }));
 }
 
 module.exports = { applySecurity };
