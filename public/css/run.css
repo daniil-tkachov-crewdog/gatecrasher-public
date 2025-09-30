@@ -541,3 +541,65 @@ button:disabled {
 
     /* prevent iOS zoom */
 }
+
+
+/* ===== Mobile overflow fixes for topbar ===== */
+.topbar {
+    flex-wrap: wrap;
+    /* allow items to wrap instead of overflowing */
+}
+
+.topbar>* {
+    min-width: 0;
+}
+
+/* let flex children shrink if needed */
+
+/* Make sure the page never scrolls sideways */
+html,
+body {
+    overflow-x: hidden;
+}
+
+/* Mobile layout rules */
+@media (max-width: 560px) {
+    .topbar {
+        gap: 8px;
+    }
+
+    /* On mobile, don't push everything with margin-left:auto from the toggle */
+    .toggle {
+        margin-left: 0;
+        order: 2;
+        /* brand (1), toggle (2), account (3) */
+    }
+
+    /* Account button moves to the edge and can wrap to the next line if needed */
+    .topbar .button {
+        margin-left: auto;
+        order: 3;
+        max-width: 100%;
+    }
+}
+
+/* Optional: icon-only Account button on very small screens to save width */
+@media (max-width: 420px) {
+    .topbar .button {
+        padding: 8px;
+        border-radius: 999px;
+        font-size: 0;
+        /* hide text but keep accessible aria-label */
+        line-height: 0;
+    }
+
+    .topbar .button svg {
+        width: 20px;
+        height: 20px;
+        margin: 0;
+    }
+}
+
+/* Safety: ensure generic buttons don’t force overflow */
+.button {
+    max-width: 100%;
+}

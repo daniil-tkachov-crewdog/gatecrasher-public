@@ -1,44 +1,38 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
-  <head>
+   <head>
     <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, viewport-fit=cover"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="dark light" />
     <meta name="format-detection" content="telephone=no" />
     <meta http-equiv="x-ua-compatible" content="ie=edge" />
     <title>X-Ray Link — Account</title>
 
-    <!-- ✅ CSP updated to allow API, Supabase, Stripe, and n8n form action -->
+    <!-- CSP (Stripe + Supabase + GA if you show consent banner here; remove GA lines if not needed) -->
     <meta
       http-equiv="Content-Security-Policy"
       content="
-      default-src 'self';
-      script-src 'self' https://cdn.jsdelivr.net;
-      style-src 'self' 'unsafe-inline';
-      img-src 'self' data:;
-      connect-src 'self' http://localhost:3000 https://api.stripe.com https://checkout.stripe.com https://*.supabase.co wss://*.supabase.co https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com;
-      frame-src https://checkout.stripe.com;
-      form-action 'self' https://crewdog.app.n8n.cloud;
-    "
+        default-src 'self';
+        script-src 'self' https://cdn.jsdelivr.net https://www.googletagmanager.com https://www.google-analytics.com;
+        style-src 'self' 'unsafe-inline';
+        img-src 'self' data: https://www.google-analytics.com;
+        connect-src 'self' http://localhost:3000 https://api.stripe.com https://checkout.stripe.com https://*.supabase.co wss://*.supabase.co https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com;
+        frame-src https://checkout.stripe.com https://www.googletagmanager.com;
+        form-action 'self' https://crewdog.app.n8n.cloud;
+      "
     />
 
     <script src="/js/theme-boot.js"></script>
     <link rel="stylesheet" href="/css/theme-boot.css" />
-
     <link rel="stylesheet" href="/css/account.css" />
 
-    <!-- Supabase CDN -->
+    <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    <!-- In dev, point frontend calls to your backend origin -->
-    <script>
-      window.__API_BASE__ = "http://localhost:3000/api";
-    </script>
+    <!-- ❌ (was inline)   ✅ external env -->
+    <script src="/js/env.dev.js"></script>
 
-    <!-- Auth guard (redirects to login if not signed in) -->
+    <!-- Auth guard -->
     <script type="module" src="/js/auth_guard.js"></script>
   </head>
   <body>

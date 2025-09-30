@@ -1,6 +1,6 @@
 (function () {
     // -- SET THIS --
-    var GTM_ID = "GTM-NV2DBM3P"; 
+    var GTM_ID = "GTM-NV2DBM3P";
 
     var KEY = "gc-consent-v1";
     var saved = null;
@@ -59,6 +59,16 @@
         if (el) el.remove();
     }
 
+    // Optional: reflect status text if an element exists
+    function updateStatusText() {
+        var el = document.getElementById("consent-status");
+        if (!el) return;
+        var status = 'Not set';
+        try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { saved = null; }
+        if (saved) status = (saved.analytics_storage === 'granted') ? 'Analytics: ON' : 'Analytics: OFF';
+        el.textContent = status;
+    }
+
     // 3) Apply choice
     function setConsent(granted) {
         var choice = {
@@ -71,6 +81,7 @@
         gtag('consent', 'update', choice);
         if (granted) loadGTM(); // strictly load GTM only after opt-in
         removeBanner();
+        updateStatusText();
     }
 
     function loadGTM() {
@@ -98,10 +109,33 @@
         }
     }
 
-    // 5) expose a simple toggle in case you add a link in Privacy page
+    // 5) Expose API
     window.gcConsent = {
         open: showBanner,
         accept: function () { setConsent(true); },
         reject: function () { setConsent(false); }
     };
+
+    // 6) CSP-safe event delegation for buttons/links with data-consent="..."
+    document.addEventListener('click', function (e) {
+        var t = e.target.closest('[data-consent]');
+        if (!t) return;
+        var action = t.getAttribute('data-consent');
+        if (!action) return;
+
+        // Prevent navigation if it's an <a href="#">
+        var tag = t.tagName.toLowerCase();
+        if (tag === 'a') e.preventDefault();
+
+        if (action === 'open') showBanner();
+        else if (action === 'accept') setConsent(true);
+        else if (action === 'reject') setConsent(false);
+    });
+
+    // Update status text on load
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', updateStatusText);
+    } else {
+        updateStatusText();
+    }
 })();

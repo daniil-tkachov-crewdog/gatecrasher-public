@@ -14,30 +14,31 @@
     <meta http-equiv="x-ua-compatible" content="ie=edge" />
     <title>Crewdog.demo</title>
 
-    <!-- ✅ CSP so we can talk to API, Supabase, and n8n -->
+    <!-- ✅ CSP: allow Supabase, n8n, and (after consent) Google Tag Manager / Analytics -->
     <meta
       http-equiv="Content-Security-Policy"
       content="
-      default-src 'self';
-      script-src 'self' https://cdn.jsdelivr.net;
-      style-src 'self' 'unsafe-inline';
-      img-src 'self' data:;
-      connect-src 'self' http://localhost:3000 https://*.supabase.co wss://*.supabase.co https://crewdog.app.n8n.cloud;
-      form-action 'self' https://crewdog.app.n8n.cloud;
-    "
+        default-src 'self';
+        script-src 'self' https://cdn.jsdelivr.net https://www.googletagmanager.com https://www.google-analytics.com;
+        style-src 'self' 'unsafe-inline';
+        img-src 'self' data: https://www.google-analytics.com;
+        connect-src 'self' http://localhost:3000 https://*.supabase.co wss://*.supabase.co https://crewdog.app.n8n.cloud https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com;
+        frame-src https://www.googletagmanager.com;
+        form-action 'self' https://crewdog.app.n8n.cloud;
+      "
     />
 
     <script src="/js/theme-boot.js"></script>
     <link rel="stylesheet" href="/css/theme-boot.css" />
-
     <link rel="stylesheet" href="/css/run.css" />
 
     <!-- Supabase SDK + Auth Guard -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script>
-      /* Point frontend to your dev API */
-      window.__API_BASE__ = "http://localhost:3000/api";
-    </script>
+
+    <!-- ❌ (was inline)   ✅ load env from external file -->
+    <script src="/js/env.dev.js"></script>
+
+    <!-- Auth guard must run before the page code -->
     <script type="module" src="/js/auth_guard.js"></script>
   </head>
 

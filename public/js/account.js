@@ -4,7 +4,6 @@
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 import { initThemeToggle } from "./theme.js";
 
-
 let _initialized = false;
 let _teardowns = [];
 
@@ -104,8 +103,7 @@ async function waitForSupabase({ tries = 20, interval = 200 } = {}) {
     return null;
 }
 async function getIdentity() {
-    const supabase =
-        (await getSupabaseClient()) || (await waitForSupabase());
+    const supabase = (await getSupabaseClient()) || (await waitForSupabase());
     if (!supabase) return { userId: null, email: null };
     const { data: { session } = {} } = await supabase.auth.getSession();
     const user = session?.user || null;
@@ -232,6 +230,39 @@ function initEditSaveProfile() {
 const FREE_CAP = 1;
 const PRO_CAP = 25;
 
+const num = (v, d = 0) => {
+    const n = typeof v === "string" ? Number(v.trim()) : Number(v);
+    return Number.isFinite(n) ? n : d;
+};
+const isProStatus = (status) =>
+    ["active", "trialing", "past_due", "unpaid"].includes(String(status || "").toLowerCase());
+
+function normalizeSummary(s) {
+    const status = s?.status || "none";
+    const pro = isProStatus(status);
+
+    const capCandidates = [s?.searchCap, s?.cap, s?.searches?.cap, s?.quota?.cap, pro ? PRO_CAP : FREE_CAP];
+    const cap = capCandidates.map((v) => num(v, NaN)).find((v) => Number.isFinite(v));
+
+    const remainingCandidates = [s?.creditsRemaining, s?.remainingCredits, s?.searches?.remaining, s?.quota?.remaining];
+    let remaining = remainingCandidates.map((v) => num(v, NaN)).find((v) => Number.isFinite(v));
+
+    let used = [s?.used, s?.searches?.used, s?.quota?.used].map((v) => num(v, NaN)).find((v) => Number.isFinite(v));
+
+    if (!Number.isFinite(used) && Number.isFinite(cap) && Number.isFinite(remaining)) {
+        used = Math.max(0, cap - remaining);
+    }
+    if (!Number.isFinite(remaining) && Number.isFinite(cap) && Number.isFinite(used)) {
+        remaining = Math.max(0, cap - used);
+    }
+
+    const finalCap = Number.isFinite(cap) ? cap : (pro ? PRO_CAP : FREE_CAP);
+    const finalUsed = Math.max(0, num(used, 0));
+    const finalRemaining = Math.max(0, Number.isFinite(remaining) ? remaining : Math.max(0, finalCap - finalUsed));
+
+    return { status, pro, cap: finalCap, used: finalUsed, remaining: finalRemaining, renewalDate: s?.renewalDate || s?.renewal || null };
+}
+
 function setQuota(used, total) {
     const pct = total > 0 ? clamp((used / total) * 100, 0, 100) : 0;
     setText("quotaText", `${used} / ${total} searches`);
@@ -239,26 +270,16 @@ function setQuota(used, total) {
     if (fill) requestAnimationFrame(() => { fill.style.width = pct + "%"; });
 }
 
-function isProStatus(status) {
-    // Treat any real Stripe subscription states as Pro
-    return ["active", "trialing", "past_due", "unpaid"].includes(String(status || "").toLowerCase());
-}
+function renderSummary(raw) {
+    const { status, pro, cap, used, remaining, renewalDate } = normalizeSummary(raw);
 
-function renderSummary({ status = "none", renewalDate = null, creditsRemaining = 0 }) {
-    const pro = isProStatus(status);
-    const cap = pro ? PRO_CAP : FREE_CAP;
+    setQuota(Math.min(used, cap), cap);
 
-    const remaining = typeof creditsRemaining === "number" ? creditsRemaining : 0;
-    const used = clamp(cap - remaining, 0, cap);
-    setQuota(used, cap);
-
-    // ——— Subscription pill + text ———
     const statusText = document.getElementById("subStatus");
     const subPill = document.getElementById("subPill");
     if (statusText) statusText.textContent = pro ? "Pro — Active" : "Free — Active";
     if (subPill) subPill.setAttribute("data-status", pro ? "pro" : "free");
 
-    // Renewal
     const showRenew = pro && !!renewalDate;
     setShown("renewalWrap", showRenew);
     if (showRenew) {
@@ -268,11 +289,9 @@ function renderSummary({ status = "none", renewalDate = null, creditsRemaining =
         setText("renewalDate", "—");
     }
 
-    // ——— Plan callout (this was missing) ———
     const planBadge = document.getElementById("planBadge");
     const planNameEl = document.getElementById("planName");
     const planHelpEl = document.getElementById("planHelp");
-
     if (planBadge) planBadge.setAttribute("data-status", pro ? "pro" : "free");
     if (planNameEl) planNameEl.textContent = pro ? "Pro" : "Free";
     if (planHelpEl) {
@@ -281,13 +300,11 @@ function renderSummary({ status = "none", renewalDate = null, creditsRemaining =
             : `You’re on the <strong>Free</strong> plan — <strong>${FREE_CAP}</strong> search / month. Upgrade to unlock <strong>${PRO_CAP}</strong> searches / month.`;
     }
 
-    // Buttons
     const upgrade = document.getElementById("upgradeBtn");
     const cancel = document.getElementById("cancelBtn");
-    if (upgrade) upgrade.style.display = pro ? "none" : "";   // hide Upgrade when Pro
-    if (cancel) cancel.disabled = !pro;                      // enable only for Pro
+    if (upgrade) upgrade.style.display = pro ? "none" : "";
+    if (cancel) cancel.disabled = !pro;
 }
-
 
 async function fetchSummary(userId) {
     const res = await fetch(`${API_BASE}/account/summary/${userId}`, { credentials: "include" });
@@ -325,12 +342,10 @@ async function initAccountSummaryAndBilling() {
 
     await refreshSummary();
 
-    // Visibility refresh
     const vis = () => { if (document.visibilityState === "visible") refreshSummary(); };
     document.addEventListener("visibilitychange", vis);
     _teardowns.push(() => document.removeEventListener("visibilitychange", vis));
 
-    // BroadcastChannel live updates after each search
     try {
         const bc = new BroadcastChannel("gc-activity");
         const onMsg = (e) => { if (e?.data?.type === "search_used") refreshSummary(); };
@@ -338,7 +353,6 @@ async function initAccountSummaryAndBilling() {
         _teardowns.push(() => bc.removeEventListener("message", onMsg));
     } catch { }
 
-    // ✅ Upgrade button now re-checks identity at click time
     if (upgrade) {
         const handler = async () => {
             try {
@@ -358,7 +372,6 @@ async function initAccountSummaryAndBilling() {
     }
 
     if (cancel) {
-        // Keep disabled unless you expose a user-facing cancel endpoint
         cancel.title = "Cancel from billing portal or contact support.";
     }
 }
@@ -454,8 +467,7 @@ async function initPasswordChange() {
     const errorBox = document.getElementById("pass-error");
     if (!updateBtn) return;
 
-    const supabase =
-        (await getSupabaseClient()) || (await waitForSupabase());
+    const supabase = (await getSupabaseClient()) || (await waitForSupabase());
     if (!supabase) return;
 
     const show = (el, on) => el && (el.style.display = on ? "block" : "none");
@@ -512,11 +524,9 @@ async function initLogout() {
 
     const handler = async () => {
         try {
-            const supabase =
-                (await getSupabaseClient()) || (await waitForSupabase());
+            const supabase = (await getSupabaseClient()) || (await waitForSupabase());
             if (supabase) await supabase.auth.signOut();
         } catch { }
-        // Always send them to login after sign out
         window.location.href = "./login.html";
     };
 
@@ -539,7 +549,6 @@ export function initAccountPage() {
     initSupportForm();
     initPasswordChange();
     initLogout();
-
 
     onDomReady(async () => {
         await initProfilePrefill();
