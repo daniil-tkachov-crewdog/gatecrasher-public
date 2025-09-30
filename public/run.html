@@ -35,8 +35,8 @@
     <!-- Supabase SDK + Auth Guard -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    <!-- ❌ (was inline)   ✅ load env from external file -->
-    <script src="/js/env.dev.js"></script>
+    <!-- Dev-only. Safe with CSP since it’s an external script from 'self'. -->
+    <script defer src="/js/env.dev.js"></script>
 
     <!-- Auth guard must run before the page code -->
     <script type="module" src="/js/auth_guard.js"></script>

@@ -1,8 +1,11 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
-   <head>
+  <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
     <meta name="color-scheme" content="dark light" />
     <meta name="format-detection" content="telephone=no" />
     <meta http-equiv="x-ua-compatible" content="ie=edge" />
@@ -29,8 +32,8 @@
     <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    <!-- ❌ (was inline)   ✅ external env -->
-    <script src="/js/env.dev.js"></script>
+    <!-- Dev-only. Safe with CSP since it’s an external script from 'self'. -->
+    <script defer src="/js/env.dev.js"></script>
 
     <!-- Auth guard -->
     <script type="module" src="/js/auth_guard.js"></script>

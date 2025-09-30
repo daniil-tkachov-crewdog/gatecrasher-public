@@ -1,21 +1,42 @@
+// /js/run.js — plan/quota strip + guard + live updates
+
 import { initThemeToggle } from "./theme.js";
 import { initAuthGuard } from "./auth_guard.js";
 import { initRunForm } from "./run_form.js";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
 
+// Ensure dataLayer exists even before GTM loads
 window.dataLayer = window.dataLayer || [];
+
+/* =========================
+   API base (no more prod→localhost!)
+   ========================= */
+const isLocalHost = ["localhost", "127.0.0.1", "::1"].includes(location.hostname);
+const sanitizedWindowBase = (() => {
+    const v = (window.__API_BASE__ || "").trim();
+    // Only trust a same-origin path or a URL that matches current environment
+    try {
+        if (!v) return "";
+        if (v.startsWith("/")) return v; // same-origin path
+        const u = new URL(v, location.origin);
+        if (isLocalHost && (u.hostname === "localhost" || u.hostname === "127.0.0.1" || u.hostname === "::1")) return u.href;
+        if (!isLocalHost && u.origin === location.origin) return u.href;
+        return ""; // reject mismatched origins to avoid prod calling localhost
+    } catch {
+        return "";
+    }
+})();
+const API_BASE = sanitizedWindowBase || (isLocalHost ? "http://localhost:3000/api" : "/api");
 
 /* =========================
    Plan / quota sync + guard
    ========================= */
-const API_BASE = window.__API_BASE__ || "/api";
 const FREE_CAP = 1;
 const PRO_CAP = 25;
 
-let bc;                 // BroadcastChannel
-let resultObserver;     // MutationObserver for #result
-let inFlight = false;   // prevent double submits
-let consumedThisRun = false; // ensure single consume per run
+let bc;               // BroadcastChannel
+let resultObserver;   // MutationObserver for #result
+let inFlight = false; // prevent double submits
 
 const byId = (id) => document.getElementById(id);
 const setShown = (el, on) => { if (el) el.style.display = on ? "" : "none"; };
@@ -104,18 +125,14 @@ function normalizeSummary(s) {
 
 /* ---------- Local fallback quota (per user + period) ---------- */
 const LS_Q = "xrl-quota";
+const qKey = (userId, periodEnd) => `${LS_Q}:${userId || "nouser"}:${periodEnd || "noperiod"}`;
 
-function qKey(userId, periodEnd) {
-    return `${LS_Q}:${userId || "nouser"}:${periodEnd || "noperiod"}`;
-}
 function getLocalUsed(userId, periodEnd) {
     try {
         const v = localStorage.getItem(qKey(userId, periodEnd));
         const n = Number(v);
         return Number.isFinite(n) ? n : 0;
-    } catch {
-        return 0;
-    }
+    } catch { return 0; }
 }
 function setLocalUsed(userId, periodEnd, used) {
     try { localStorage.setItem(qKey(userId, periodEnd), String(Math.max(0, used | 0))); } catch { }
@@ -130,25 +147,15 @@ function resetLocalIfServerHigher(userId, periodEnd, serverUsed) {
     if (serverUsed > local) setLocalUsed(userId, periodEnd, serverUsed);
 }
 
-/* Overlay local fallback onto normalized summary.
-   While a run is in-flight, allow optimistic local > server.
-   Once not in-flight, snap local back to server to avoid stale over-count. */
+/* Overlay local fallback onto normalized summary */
 function applyLocalOverlay(s, userId) {
     if (!userId) return s;
-
     const localUsed = getLocalUsed(userId, s.renewalDate);
-
-    if (inFlight) {
-        if (localUsed > s.used) {
-            const used = Math.min(localUsed, s.cap);
-            return { ...s, used, remaining: Math.max(0, s.cap - used) };
-        }
-        resetLocalIfServerHigher(userId, s.renewalDate, s.used);
-        return s;
+    if (localUsed > s.used) {
+        const used = Math.min(localUsed, s.cap);
+        return { ...s, used, remaining: Math.max(0, s.cap - used) };
     }
-
-    // not in flight → snap local to server truth
-    setLocalUsed(userId, s.renewalDate, s.used);
+    resetLocalIfServerHigher(userId, s.renewalDate, s.used);
     return s;
 }
 
@@ -197,7 +204,15 @@ async function refreshSummaryAndUI() {
     }
 }
 
-/* ---------- Server-side: consume one credit after results land ---------- */
+/* ---------- Cross-tab signal ---------- */
+function postActivity() {
+    try {
+        if (!bc) bc = new BroadcastChannel("gc-activity");
+        bc.postMessage({ type: "search_used", at: Date.now() });
+    } catch { }
+}
+
+/* ---------- Server-side: consume one credit when results land ---------- */
 async function consumeOneCredit() {
     try {
         const { userId } = await getIdentity();
@@ -208,18 +223,10 @@ async function consumeOneCredit() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ userId })
         });
-    } catch { }
+    } catch { /* ignore */ }
 }
 
-/* ---------- Cross-tab signal ---------- */
-function postActivity() {
-    try {
-        if (!bc) bc = new BroadcastChannel("gc-activity");
-        bc.postMessage({ type: "search_used", at: Date.now() });
-    } catch { }
-}
-
-/* Detect when results land in #result (indicates search finished) → consume + refresh */
+/* Detect when results land in #result (indicates search finished) → consume & refresh */
 function watchResults() {
     const box = byId("result");
     if (!box || resultObserver) return;
@@ -229,8 +236,7 @@ function watchResults() {
             (n.nodeType === 1 && (n.textContent?.trim()?.length || n.querySelector?.("*"))) ||
             (n.nodeType === 3 && n.nodeValue?.trim())
         ));
-        if (added && !consumedThisRun) {
-            consumedThisRun = true; // guard: one consume per run
+        if (added) {
             consumeOneCredit().finally(() => {
                 refreshSummaryAndUI().then(() => { inFlight = false; });
                 postActivity();
@@ -267,7 +273,7 @@ async function onSubmitGuard(e) {
         return;
     }
 
-    // Optimistic local decrement immediately (so UI shows usage during run)
+    // Optimistic local decrement immediately
     bumpLocalUsed(userId, s.renewalDate, s.cap, 1);
     s = applyLocalOverlay(s, userId);      // recompute with local bump
     renderNormalizedSummary(s, s.renewalDate);
@@ -277,7 +283,6 @@ async function onSubmitGuard(e) {
     const submitBtn = byId("submitBtn");
     if (submitBtn) {
         inFlight = true;
-        consumedThisRun = false; // reset per new run
         submitBtn.disabled = true;
         submitBtn.textContent = "Running…";
     }

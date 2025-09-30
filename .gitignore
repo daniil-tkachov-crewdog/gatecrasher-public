@@ -52,3 +52,6 @@ out/
 *.tar.gz
 
 .vercel
+
+# Local dev API override (CSP-safe external script)
+public/js/env.dev.js
