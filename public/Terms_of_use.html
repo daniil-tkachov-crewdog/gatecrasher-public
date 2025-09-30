@@ -19,40 +19,126 @@
     <link rel="stylesheet" href="/css/terms.css" />
   </head>
   <body>
-    <div class="container">
+  <div class="container">
       <header class="topbar">
         <div class="brand">
-          <span class="logo"></span>
-          <h1>Crewdog.demo</h1>
+          <a href="./index.html" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit">
+            <span class="logo"></span>
+            <h1>Crewdog.demo</h1>
+          </a>
         </div>
+        <label class="toggle" title="Toggle theme">
+          <span class="subtitle">Theme</span>
+          <input id="themeToggle" type="checkbox" aria-label="Toggle theme" />
+        </label>
       </header>
 
-      <main class="center-wrap">
-        <section
-          class="card"
-          aria-live="polite"
-          id="success-section"
-          style="display: block"
-        >
-          <div class="success-banner">✓ Email verified successfully</div>
-          <h2>You're all set</h2>
-          <p>Your sign-in email has been verified. You can continue.</p>
-          <div class="row" style="margin-top: 10px">
-            <a class="button primary" href="./run.html">Go to Run</a>
+      <main class="grid">
+        <section class="card legal">
+          <h1>Terms of Use</h1>
+          <div class="meta">Effective date: 27 August 2025 • United Kingdom</div>
+
+          <div class="toc">
+            <strong>Contents:</strong>
+            <ol>
+              <li><a href="#who">Who we are</a></li>
+              <li><a href="#agreement">Your agreement to these Terms</a></li>
+              <li><a href="#changes">Changes to these Terms</a></li>
+              <li><a href="#eligibility">Eligibility</a></li>
+              <li><a href="#services">The Services</a></li>
+              <li><a href="#accounts">Accounts & security</a></li>
+              <li><a href="#content">User content</a></li>
+              <li><a href="#acceptable">Acceptable use</a></li>
+              <li><a href="#ip">Intellectual property</a></li>
+              <li><a href="#feedback">Feedback</a></li>
+              <li><a href="#privacy">Privacy & cookies</a></li>
+              <li><a href="#warranty">Disclaimers</a></li>
+              <li><a href="#liability">Limitation of liability</a></li>
+              <li><a href="#indemnity">Indemnity</a></li>
+              <li><a href="#termination">Suspension & termination</a></li>
+              <li><a href="#changes-svc">Changes to the Services</a></li>
+              <li><a href="#export">International use & export</a></li>
+              <li><a href="#law">Governing law & venue</a></li>
+              <li><a href="#consumer">Consumers</a></li>
+              <li><a href="#misc">Miscellaneous</a></li>
+              <li><a href="#contact">Contact</a></li>
+            </ol>
           </div>
-          <p
-            id="err"
-            style="
-              display: none;
-              margin-top: 14px;
-              color: #b91c1c;
-              background: #fee2e2;
-              border: 1px solid #fecaca;
-              padding: 10px;
-              border-radius: 8px;
-              font-size: 13px;
-            "
-          ></p>
+
+          <h2 id="who">1) Who we are</h2>
+          <p>“X-Ray Link” is a trading name. References to “we”, “us”, or “our” mean the operator of the Crewdog.demo website and related tools available at Crewdog.app.</p>
+
+          <h2 id="agreement">2) Your agreement to these Terms</h2>
+          <p>By accessing or using the Services, you agree to these Terms of Use (“Terms”). If you do not agree, do not use the Services.</p>
+
+          <h2 id="changes">3) Changes to these Terms</h2>
+          <p>We may update these Terms from time to time. We will post the updated Terms and update the “Effective date” above. Your continued use constitutes acceptance of the updated Terms.</p>
+
+          <h2 id="eligibility">4) Eligibility</h2>
+          <p>You must be at least 18 years old to use the Services.</p>
+
+          <h2 id="services">5) The Services</h2>
+          <p>The Services help infer a likely end employer behind an agency job advertisement and surface publicly available profiles of HR decision-makers and, optionally, potential candidates, based on inputs you provide. Outputs are probabilistic and may be inaccurate or incomplete. You are solely responsible for how you use any outputs.</p>
+
+          <h2 id="accounts">6) Accounts & security</h2>
+          <p>If you create an account, you must provide accurate information, keep your credentials confidential, and promptly notify us of any suspected compromise. You are responsible for all activity under your account.</p>
+
+          <h2 id="content">7) User content</h2>
+          <ul>
+            <li><strong>Your rights.</strong> You retain all rights in any CVs, job descriptions, text, or other material you submit (“User Content”). We do not claim ownership.</li>
+            <li><strong>Processing only.</strong> You instruct us to process User Content solely as necessary to provide the Services. We do not request or rely on any licence beyond this limited processing instruction and do not publish your User Content.</li>
+            <li><strong>Your responsibilities.</strong> You represent that you have all rights needed to submit User Content and that it is lawful, not confidential or proprietary to third parties, and does not include special-category personal data unless you have a lawful basis to process it.</li>
+            <li><strong>Back-ups.</strong> You are responsible for keeping copies of your User Content.</li>
+          </ul>
+
+          <h2 id="acceptable">8) Acceptable use</h2>
+          <p>You will not, and will not permit others to: (a) use the Services unlawfully or to infringe others’ rights; (b) upload malware, attempt to gain unauthorised access, probe, scan, or test the vulnerability of any system; (c) copy, modify, reverse engineer, or create derivative works from the Services except to the extent such restriction is prohibited by law; (d) harvest data or perform automated bulk queries, scraping, or rate-limit evasion; (e) interfere with or disrupt the integrity or performance of the Services; (f) misrepresent outputs as facts or as professional advice; (g) use outputs to discriminate or otherwise violate applicable employment or equality laws; (h) resell, sublicense, or provide the Services to third parties without our prior written consent.</p>
+
+          <h2 id="ip">9) Intellectual property</h2>
+          <p>The Services (including software, designs, logos, and content) are owned by us or our licensors and are protected by law. Subject to these Terms, we grant you a limited, revocable, non-exclusive, non-transferable licence to access and use the Services for your own business or personal use.</p>
+
+          <h2 id="feedback">10) Feedback</h2>
+          <p>If you provide ideas or suggestions, you agree we may use them without restriction or payment.</p>
+
+          <h2 id="privacy">11) Privacy & cookies</h2>
+          <p>Your use of the Services is subject to our <a href="./Privacy_policy.html" target="_self">Privacy Policy</a>, which explains how we collect and use information, including cookies and similar technologies.</p>
+
+          <h2 id="warranty">12) Disclaimers</h2>
+          <p>The Services and all outputs are provided “as is” and “as available”. To the maximum extent permitted by law, we disclaim all warranties (express, implied, or statutory), including merchantability, fitness for a particular purpose, accuracy, and non-infringement. We do not warrant that the Services will be uninterrupted or error-free.</p>
+
+          <h2 id="liability">13) Limitation of liability</h2>
+          <p>Nothing in these Terms excludes or limits liability for death or personal injury caused by negligence, fraud or fraudulent misrepresentation, or any liability that cannot legally be limited.</p>
+          <p>Subject to the preceding sentence, to the maximum extent permitted by law: (a) we are not liable for any loss of profits, revenue, business, goodwill, data, or for any indirect or consequential loss; and (b) our total aggregate liability arising out of or relating to the Services or these Terms shall not exceed the greater of £100 or the amounts you paid (if any) for the Services in the 12 months preceding the event giving rise to the liability.</p>
+
+          <h2 id="indemnity">14) Indemnity</h2>
+          <p>You will indemnify and hold us harmless from any third-party claim arising from your use of the Services, your User Content, or your breach of these Terms.</p>
+
+          <h2 id="termination">15) Suspension & termination</h2>
+          <p>We may suspend or terminate your access to the Services at any time if we reasonably believe you have breached these Terms, pose a risk to the Services or others, or for compliance reasons. You may stop using the Services at any time. Clauses which by their nature should survive termination will survive.</p>
+
+          <h2 id="changes-svc">16) Changes to the Services</h2>
+          <p>We may change, discontinue, or impose limits on any part of the Services at any time.</p>
+
+          <h2 id="export">17) International use & export</h2>
+          <p>You must comply with all applicable export, sanctions, and trade laws that apply to your use of the Services.</p>
+
+          <h2 id="law">18) Governing law & venue</h2>
+          <p>These Terms and any dispute or claim (including non-contractual disputes or claims) are governed by the laws of England and Wales. The courts of England and Wales shall have exclusive jurisdiction, except that either party may seek interim injunctive relief in any court of competent jurisdiction.</p>
+
+          <h2 id="consumer">19) Consumers</h2>
+          <p>If you are a consumer, nothing in these Terms affects your statutory rights. If any part of these Terms is inconsistent with mandatory consumer law, that part shall apply only to the extent permitted.</p>
+
+          <h2 id="misc">20) Miscellaneous</h2>
+          <ul>
+            <li><strong>Entire agreement.</strong> These Terms constitute the entire agreement between you and us regarding the Services.</li>
+            <li><strong>No third-party rights.</strong> No person other than the parties has any rights under the Contracts (Rights of Third Parties) Act 1999 to enforce any term of these Terms.</li>
+            <li><strong>Severability.</strong> If any provision is held invalid, the remaining provisions will remain in effect.</li>
+            <li><strong>No waiver.</strong> Failure to enforce any provision is not a waiver.</li>
+            <li><strong>Assignment.</strong> You may not assign these Terms without our prior written consent; we may assign these Terms in connection with a reorganisation, merger, or transfer of assets.</li>
+          </ul>
+
+          <h2 id="contact">21) Contact</h2>
+          <p>For questions or legal notices, please use our <a href="./Support.html" target="_self">Support</a> page.</p>
         </section>
       </main>
     </div>
@@ -63,14 +149,10 @@
         <a href="./Terms_of_use.html">Terms of Use</a>
         <a href="./FAQ.html">FAQ</a>
         <a href="./Support.html">Support</a>
-
-        <!-- New: opens the banner without changing the current choice -->
-        <a href="#" onclick="gcConsent && gcConsent.open(); return false;"
-          >Manage cookies</a
-        >
       </nav>
       <div class="footer-copy">© Crewdog</div>
     </footer>
+
 
     <!-- Entry (ESM) -->
     <script type="module" src="/js/terms.js"></script>

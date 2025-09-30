@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="color-scheme" content="light" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge" />
+
+    <script defer src="/js/consent.js"></script>
+
+    <title>X-Ray Link — Email Verified</title>
+
+     <script src="/js/theme-boot.js"></script>
+  <link rel="stylesheet" href="/css/theme-boot.css">
+    <link rel="stylesheet" href="/css/email-verification.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header class="topbar">
+        <div class="brand">
+          <span class="logo"></span>
+          <h1>Crewdog.demo</h1>
+        </div>
+      </header>
+
+      <main class="center-wrap">
+        <section
+          class="card"
+          aria-live="polite"
+          id="success-section"
+          style="display: block"
+        >
+          <div class="success-banner">✓ Email verified successfully</div>
+          <h2>You're all set</h2>
+          <p>Your sign-in email has been verified. You can continue.</p>
+          <div class="row" style="margin-top: 10px">
+            <a class="button primary" href="./run.html">Go to Run</a>
+          </div>
+          <p
+            id="err"
+            style="
+              display: none;
+              margin-top: 14px;
+              color: #b91c1c;
+              background: #fee2e2;
+              border: 1px solid #fecaca;
+              padding: 10px;
+              border-radius: 8px;
+              font-size: 13px;
+            "
+          ></p>
+        </section>
+      </main>
+    </div>
+
+    <footer class="footer">
+      <nav class="footer-nav" aria-label="Footer">
+        <a href="./Privacy_policy.html">Privacy Policy</a>
+        <a href="./Terms_of_use.html">Terms of Use</a>
+        <a href="./FAQ.html">FAQ</a>
+        <a href="./Support.html">Support</a>
+
+        <!-- New: opens the banner without changing the current choice -->
+        <a href="#" onclick="gcConsent && gcConsent.open(); return false;"
+          >Manage cookies</a
+        >
+      </nav>
+      <div class="footer-copy">© Crewdog</div>
+    </footer>
+
+    <!-- Entry (ESM) -->
+    <script type="module" src="/js/email-verification.js"></script>
+  </body>
+</html>
