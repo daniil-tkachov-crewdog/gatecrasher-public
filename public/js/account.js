@@ -2,6 +2,8 @@
 // Requires: window.supabase (CDN), /api/account/summary/:userId endpoint
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
+import { initThemeToggle } from "./theme.js";
+
 
 let _initialized = false;
 let _teardowns = [];

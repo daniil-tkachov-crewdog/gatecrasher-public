@@ -15,6 +15,9 @@
     <!-- Consent banner -->
     <script defer src="/js/consent.js"></script>
 
+    <script src="/js/theme-boot.js"></script>
+    <link rel="stylesheet" href="/css/theme-boot.css" />
+
     <!-- Reuse verify.css for card + layout -->
     <link rel="stylesheet" href="/css/verify.css" />
   </head>
@@ -22,7 +25,11 @@
     <div class="container">
       <!-- Topbar -->
       <header class="topbar">
-        <a href="./index.html" class="brand" style="text-decoration:none; color:inherit;">
+        <a
+          href="./index.html"
+          class="brand"
+          style="text-decoration: none; color: inherit"
+        >
           <span class="logo"></span>
           <h1>Crewdog.demo</h1>
         </a>
@@ -41,7 +48,7 @@
             <a class="button" href="./account.html">Go to Account</a>
           </div>
 
-          <p class="subtitle" style="margin-top:14px">
+          <p class="subtitle" style="margin-top: 14px">
             Need help? <a href="./Support.html">Contact Support</a>.
           </p>
         </section>
@@ -55,7 +62,9 @@
         <a href="./Terms_of_use.html">Terms of Use</a>
         <a href="./FAQ.html">FAQ</a>
         <a href="./Support.html">Support</a>
-        <a href="#" onclick="gcConsent && gcConsent.open(); return false;">Manage cookies</a>
+        <a href="#" onclick="gcConsent && gcConsent.open(); return false;"
+          >Manage cookies</a
+        >
       </nav>
       <div class="footer-copy">© Crewdog</div>
     </footer>

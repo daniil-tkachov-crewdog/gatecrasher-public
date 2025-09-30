@@ -15,14 +15,20 @@
     <title>Crewdog.demo</title>
 
     <!-- ✅ CSP so we can talk to API, Supabase, and n8n -->
-    <meta http-equiv="Content-Security-Policy" content="
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="
       default-src 'self';
       script-src 'self' https://cdn.jsdelivr.net;
       style-src 'self' 'unsafe-inline';
       img-src 'self' data:;
       connect-src 'self' http://localhost:3000 https://*.supabase.co wss://*.supabase.co https://crewdog.app.n8n.cloud;
       form-action 'self' https://crewdog.app.n8n.cloud;
-    ">
+    "
+    />
+
+    <script src="/js/theme-boot.js"></script>
+    <link rel="stylesheet" href="/css/theme-boot.css" />
 
     <link rel="stylesheet" href="/css/run.css" />
 
@@ -38,7 +44,11 @@
   <body>
     <div class="container">
       <header class="topbar">
-        <a href="./index.html" class="brand" style="text-decoration: none; color: inherit">
+        <a
+          href="./index.html"
+          class="brand"
+          style="text-decoration: none; color: inherit"
+        >
           <span class="logo"></span>
           <h1>Crewdog.demo</h1>
         </a>
@@ -46,10 +56,20 @@
           <span class="subtitle">Theme</span>
           <input id="themeToggle" type="checkbox" aria-label="Toggle theme" />
         </label>
-        <a href="./account.html" class="button" style="text-decoration: none" aria-label="Account">
+        <a
+          href="./account.html"
+          class="button"
+          style="text-decoration: none"
+          aria-label="Account"
+        >
           <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
             <circle cx="12" cy="8" r="4"></circle>
-            <path d="M4 20c0-4 4-6 8-6s8 2 8 6" fill="none" stroke="currentColor" stroke-width="2"></path>
+            <path
+              d="M4 20c0-4 4-6 8-6s8 2 8 6"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            ></path>
           </svg>
           Account
         </a>
@@ -59,26 +79,42 @@
         <section class="card">
           <div class="stack">
             <p class="subtitle" style="margin: 0">
-              Paste a job description, optionally include potential leads, then run.
+              Paste a job description, optionally include potential leads, then
+              run.
             </p>
 
             <!-- ✅ Plan + quota strip -->
-            <div id="run-plan" class="panel" style="padding:12px; display:flex; align-items:center; gap:10px;">
+            <div
+              id="run-plan"
+              class="panel"
+              style="
+                padding: 12px;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+              "
+            >
               <div id="runPlanPill" class="pill" data-status="none">
                 <span class="dot" aria-hidden="true"></span>
                 <span id="runPlanText">Free</span>
               </div>
               <div class="subtitle">
                 <span id="runQuotaText">0 / 1 searches</span>
-                <span id="runRenewalText" class="muted" style="margin-left:8px"></span>
+                <span
+                  id="runRenewalText"
+                  class="muted"
+                  style="margin-left: 8px"
+                ></span>
               </div>
-              <div style="margin-left:auto">
-                <a href="./account.html" class="button ghost" id="upgradeLink">Upgrade</a>
+              <div style="margin-left: auto">
+                <a href="./account.html" class="button ghost" id="upgradeLink"
+                  >Upgrade</a
+                >
               </div>
             </div>
 
             <!-- Error/info banner -->
-            <div id="runBanner" class="error" style="display:none"></div>
+            <div id="runBanner" class="error" style="display: none"></div>
 
             <form
               id="gatecrasher-form"
@@ -91,8 +127,15 @@
                 <div class="stack">
                   <label for="JH_tickbox" class="muted">Options</label>
                   <div class="inline-check">
-                    <input id="JH_tickbox" name="JH_tickbox" type="checkbox" value="yes" />
-                    <label for="JH_tickbox">Include potential leads search?</label>
+                    <input
+                      id="JH_tickbox"
+                      name="JH_tickbox"
+                      type="checkbox"
+                      value="yes"
+                    />
+                    <label for="JH_tickbox"
+                      >Include potential leads search?</label
+                    >
                   </div>
                 </div>
 
@@ -100,8 +143,12 @@
 
                 <!-- Submit -->
                 <div class="stack">
-                  <label for="submitBtn" style="visibility: hidden">&nbsp;</label>
-                  <button id="submitBtn" class="primary" type="submit">Run Search</button>
+                  <label for="submitBtn" style="visibility: hidden"
+                    >&nbsp;</label
+                  >
+                  <button id="submitBtn" class="primary" type="submit">
+                    Run Search
+                  </button>
                 </div>
 
                 <div aria-hidden="true"></div>
@@ -109,7 +156,12 @@
 
               <div class="stack">
                 <label for="JD">Job Description (paste below)</label>
-                <textarea id="JD" name="JD" placeholder="Paste the full job description here…" required></textarea>
+                <textarea
+                  id="JD"
+                  name="JD"
+                  placeholder="Paste the full job description here…"
+                  required
+                ></textarea>
               </div>
 
               <!-- Hidden fallback for checkbox -->
@@ -123,8 +175,8 @@
         <section class="card">
           <h2 style="margin: 0 0 8px">What this tool does</h2>
           <p class="subtitle" style="line-height: 1.5">
-            Reveals the likely end employer behind an agency job ad, shows HR decision-makers,
-            and optionally finds potential candidates/leads.
+            Reveals the likely end employer behind an agency job ad, shows HR
+            decision-makers, and optionally finds potential candidates/leads.
           </p>
         </section>
       </main>
@@ -136,7 +188,9 @@
         <a href="./Terms_of_use.html">Terms of Use</a>
         <a href="./FAQ.html">FAQ</a>
         <a href="./Support.html">Support</a>
-        <a href="#" onclick="gcConsent && gcConsent.open(); return false;">Manage cookies</a>
+        <a href="#" onclick="gcConsent && gcConsent.open(); return false;"
+          >Manage cookies</a
+        >
       </nav>
       <div class="footer-copy">© Crewdog</div>
     </footer>

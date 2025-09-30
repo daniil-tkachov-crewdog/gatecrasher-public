@@ -1,0 +1,4 @@
+/* theme-boot.css */
+.theme-boot * {
+    transition: none !important;
+}
