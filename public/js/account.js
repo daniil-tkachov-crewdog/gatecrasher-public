@@ -17,7 +17,25 @@ function onDomReady(fn) {
         fn();
     }
 }
-const API_BASE = window.__API_BASE__ || "/api"; // ensure no trailing slash
+// const API_BASE = window.__API_BASE__ || "/api"; // ensure no trailing slash
+
+const isLocalHost = ["localhost", "127.0.0.1", "::1"].includes(location.hostname);
+const sanitizedWindowBase = (() => {
+    const v = (window.__API_BASE__ || "").trim();
+    try {
+        if (!v) return "";
+        if (v.startsWith("/")) return v; // same-origin path
+        const u = new URL(v, location.origin);
+        if (isLocalHost && (u.hostname === "localhost" || u.hostname === "127.0.0.1" || u.hostname === "::1")) return u.href;
+        if (!isLocalHost && u.origin === location.origin) return u.href; // allow absolute same-origin
+        return "";
+    } catch {
+        return "";
+    }
+})();
+const API_BASE = sanitizedWindowBase || (isLocalHost ? "http://localhost:3000/api" : "/api");
+
+
 const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 function setText(id, txt) {
     const el = document.getElementById(id);
