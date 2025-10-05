@@ -3,7 +3,10 @@
   <head>
     <script defer src="/js/consent.js"></script>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, shrink-to-fit=no" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, shrink-to-fit=no"
+    />
     <meta name="color-scheme" content="dark light" />
     <meta http-equiv="x-ua-compatible" content="ie=edge" />
     <title>Crewdog.demo</title>
@@ -16,7 +19,12 @@
         script-src 'self' https://cdn.jsdelivr.net https://www.googletagmanager.com https://www.google-analytics.com;
         style-src 'self' 'unsafe-inline';
         img-src 'self' data: https://www.google-analytics.com;
-        connect-src 'self' http://localhost:3000 https://*.supabase.co wss://*.supabase.co https://crewdog.app.n8n.cloud https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com;
+        connect-src 'self'
+        https://api.stripe.com https://checkout.stripe.com
+        https://*.supabase.co wss://*.supabase.co
+        https://www.google-analytics.com https://region1.google-analytics.com
+        https://www.googletagmanager.com
+        https://crewdog.app.n8n.cloud;
         frame-src https://www.googletagmanager.com;
         form-action 'self' https://crewdog.app.n8n.cloud;
       "
@@ -46,7 +54,12 @@
         <a href="./account.html" class="button" aria-label="Account">
           <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
             <circle cx="12" cy="8" r="4"></circle>
-            <path d="M4 20c0-4 4-6 8-6s8 2 8 6" fill="none" stroke="currentColor" stroke-width="2"></path>
+            <path
+              d="M4 20c0-4 4-6 8-6s8 2 8 6"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            ></path>
           </svg>
           Account
         </a>
@@ -55,7 +68,10 @@
       <main class="grid">
         <section class="card">
           <div class="stack">
-            <p class="subtitle">Paste a job description, optionally include potential leads, then run.</p>
+            <p class="subtitle">
+              Paste a job description, optionally include potential leads, then
+              run.
+            </p>
 
             <!-- Plan + quota strip -->
             <div id="run-plan" class="panel plan-strip">
@@ -68,12 +84,14 @@
                 <span id="runRenewalText" class="muted"></span>
               </div>
               <div class="ml-auto">
-                <a href="./account.html" class="button ghost" id="upgradeLink">Upgrade</a>
+                <a href="./account.html" class="button ghost" id="upgradeLink"
+                  >Upgrade</a
+                >
               </div>
             </div>
 
             <!-- Error/info banner -->
-            <div id="runBanner" class="error" style="display:none"></div>
+            <div id="runBanner" class="error" style="display: none"></div>
 
             <!-- =============================
                  Main form (existing preserved)
@@ -88,8 +106,15 @@
                 <div class="stack">
                   <label for="JH_tickbox" class="muted">Options</label>
                   <div class="inline-check">
-                    <input id="JH_tickbox" name="JH_tickbox" type="checkbox" value="yes" />
-                    <label for="JH_tickbox">Include potential leads search?</label>
+                    <input
+                      id="JH_tickbox"
+                      name="JH_tickbox"
+                      type="checkbox"
+                      value="yes"
+                    />
+                    <label for="JH_tickbox"
+                      >Include potential leads search?</label
+                    >
                   </div>
                 </div>
 
@@ -109,8 +134,14 @@
               <div class="alert info">
                 <strong>Before you run a search:</strong>
                 <ul>
-                  <li>The pasted job description must be <b>at least 300 characters</b>.</li>
-                  <li>The job description must include a <b>location</b> (e.g., city & country/state).</li>
+                  <li>
+                    The pasted job description must be
+                    <b>at least 300 characters</b>.
+                  </li>
+                  <li>
+                    The job description must include a <b>location</b> (e.g.,
+                    city & country/state).
+                  </li>
                 </ul>
               </div>
 
@@ -125,7 +156,8 @@
                   autocomplete="off"
                 />
                 <small class="muted">
-                  Paste either a <b>link</b> to the job or the <b>full description text</b> below — not both.
+                  Paste either a <b>link</b> to the job or the
+                  <b>full description text</b> below — not both.
                 </small>
               </div>
 
@@ -147,14 +179,21 @@
 
             <!-- 🔥 Global search loading overlay -->
             <div id="searchLoader" aria-hidden="true">
-              <div class="gc-card" role="status" aria-live="polite" aria-label="Searching">
+              <div
+                class="gc-card"
+                role="status"
+                aria-live="polite"
+                aria-label="Searching"
+              >
                 <div class="gc-radar">
                   <div class="gc-ring"></div>
                   <div class="gc-pulse"></div>
                 </div>
                 <div class="gc-text">
                   Searching
-                  <span class="gc-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+                  <span class="gc-dots" aria-hidden="true"
+                    ><i></i><i></i><i></i
+                  ></span>
                 </div>
               </div>
             </div>
@@ -165,8 +204,8 @@
         <section class="card">
           <h2>What this tool does</h2>
           <p class="subtitle">
-            Reveals the likely end employer behind an agency job ad, shows HR decision-makers,
-            and optionally finds potential candidates/leads.
+            Reveals the likely end employer behind an agency job ad, shows HR
+            decision-makers, and optionally finds potential candidates/leads.
           </p>
         </section>
       </main>
@@ -179,7 +218,9 @@
         <a href="./Terms_of_use.html">Terms of Use</a>
         <a href="./FAQ.html">FAQ</a>
         <a href="./Support.html">Support</a>
-        <a href="#" onclick="gcConsent && gcConsent.open(); return false;">Manage cookies</a>
+        <a href="#" onclick="gcConsent && gcConsent.open(); return false;"
+          >Manage cookies</a
+        >
       </nav>
       <div class="footer-copy">© Crewdog</div>
     </footer>

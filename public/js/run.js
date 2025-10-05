@@ -257,7 +257,7 @@ function renderNormalizedSummary(s, rawRenewal) {
             submitBtn.textContent = s.pro ? "Out of credits" : "Upgrade to run";
             // (Optional tiny tooltip for clarity)
             submitBtn.title = s.pro ? "You’ve used all 25 searches. Click ‘Renew now’ to reset immediately." :
-                "Free plan includes 1 search/month. Upgrade for more.";
+                                      "Free plan includes 1 search/month. Upgrade for more.";
         } else if (!inFlight) {
             submitBtn.disabled = false;
             submitBtn.textContent = "Run Search";

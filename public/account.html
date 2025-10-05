@@ -19,7 +19,12 @@
         script-src 'self' https://cdn.jsdelivr.net https://www.googletagmanager.com https://www.google-analytics.com;
         style-src 'self' 'unsafe-inline';
         img-src 'self' data: https://www.google-analytics.com;
-        connect-src 'self' http://localhost:3000 https://api.stripe.com https://checkout.stripe.com https://*.supabase.co wss://*.supabase.co https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com;
+        connect-src 'self'
+        https://api.stripe.com https://checkout.stripe.com
+        https://*.supabase.co wss://*.supabase.co
+        https://www.google-analytics.com https://region1.google-analytics.com
+        https://www.googletagmanager.com
+        https://crewdog.app.n8n.cloud;
         frame-src https://checkout.stripe.com https://www.googletagmanager.com;
         form-action 'self' https://crewdog.app.n8n.cloud;
       "
@@ -442,11 +447,27 @@
     </div>
 
     <!-- Cancellation Survey Modal -->
-    <div id="cancelModal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" style="display:none">
+    <div
+      id="cancelModal"
+      class="modal"
+      aria-hidden="true"
+      role="dialog"
+      aria-modal="true"
+      style="display: none"
+    >
       <div class="modal__card">
         <div class="modal__head">
-          <h3 class="modal__title">Why do you want to cancel our subscription?</h3>
-          <button id="cancelClose" class="btn ghost" type="button" aria-label="Close">✕</button>
+          <h3 class="modal__title">
+            Why do you want to cancel our subscription?
+          </h3>
+          <button
+            id="cancelClose"
+            class="btn ghost"
+            type="button"
+            aria-label="Close"
+          >
+            ✕
+          </button>
         </div>
 
         <form id="cancelForm" class="modal__body">
@@ -471,33 +492,58 @@
               <input type="radio" name="reason" value="other" />
               <span>Something else…</span>
             </label>
-            <textarea id="cancelOther" placeholder="Tell us a bit more" style="display:none"></textarea>
+            <textarea
+              id="cancelOther"
+              placeholder="Tell us a bit more"
+              style="display: none"
+            ></textarea>
           </div>
 
           <div class="modal__foot">
-            <button id="cancelNext" class="btn primary" type="submit">Continue</button>
+            <button id="cancelNext" class="btn primary" type="submit">
+              Continue
+            </button>
           </div>
         </form>
       </div>
     </div>
 
     <!-- Downsell Modal (spelling matches JS: 'downswellModal') -->
-    <div id="downswellModal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" style="display:none">
+    <div
+      id="downswellModal"
+      class="modal"
+      aria-hidden="true"
+      role="dialog"
+      aria-modal="true"
+      style="display: none"
+    >
       <div class="modal__card">
         <div class="modal__head">
           <h3 class="modal__title">Would £2/month work better?</h3>
-          <button class="btn ghost" type="button" aria-label="Close" onclick="document.getElementById('downswellModal').style.display='none'">✕</button>
+          <button
+            class="btn ghost"
+            type="button"
+            aria-label="Close"
+            onclick="document.getElementById('downswellModal').style.display='none'"
+          >
+            ✕
+          </button>
         </div>
 
         <div class="modal__body">
-          <p class="subtitle" style="margin-bottom:12px">
-            Keep your access on a lighter plan for just £2/month — you can cancel anytime.
+          <p class="subtitle" style="margin-bottom: 12px">
+            Keep your access on a lighter plan for just £2/month — you can
+            cancel anytime.
           </p>
         </div>
 
         <div class="modal__foot">
-          <button id="keepForTwoBtn" class="btn primary" type="button">Keep for £2</button>
-          <button id="cancelAnywayBtn" class="btn danger" type="button">Cancel anyway</button>
+          <button id="keepForTwoBtn" class="btn primary" type="button">
+            Keep for £2
+          </button>
+          <button id="cancelAnywayBtn" class="btn danger" type="button">
+            Cancel anyway
+          </button>
         </div>
       </div>
     </div>

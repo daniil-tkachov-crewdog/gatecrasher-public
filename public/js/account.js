@@ -17,7 +17,7 @@ function onDomReady(fn) {
         fn();
     }
 }
-const API_BASE = window.__API_BASE__ || "/api";
+const API_BASE = window.__API_BASE__ || "/api"; // ensure no trailing slash
 const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 function setText(id, txt) {
     const el = document.getElementById(id);
