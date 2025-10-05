@@ -1,20 +1,14 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
   <head>
-    <!-- Consent banner + GTM/GA handling (loads GTM only after user accepts) -->
     <script defer src="/js/consent.js"></script>
-
     <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, viewport-fit=cover, shrink-to-fit=no"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, shrink-to-fit=no" />
     <meta name="color-scheme" content="dark light" />
-    <meta name="format-detection" content="telephone=no" />
     <meta http-equiv="x-ua-compatible" content="ie=edge" />
     <title>Crewdog.demo</title>
 
-    <!-- ✅ CSP: allow Supabase, n8n, and (after consent) Google Tag Manager / Analytics -->
+    <!-- CSP configuration (kept identical) -->
     <meta
       http-equiv="Content-Security-Policy"
       content="
@@ -32,24 +26,16 @@
     <link rel="stylesheet" href="/css/theme-boot.css" />
     <link rel="stylesheet" href="/css/run.css" />
 
-    <!-- Supabase SDK + Auth Guard -->
+    <!-- Supabase & config -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-    <!-- Dev-only. Safe with CSP since it’s an external script from 'self'. -->
     <script defer src="/js/env.dev.js"></script>
-
-    <!-- Auth guard must run before the page code -->
     <script type="module" src="/js/auth_guard.js"></script>
   </head>
 
   <body>
     <div class="container">
       <header class="topbar">
-        <a
-          href="./index.html"
-          class="brand"
-          style="text-decoration: none; color: inherit"
-        >
+        <a href="./index.html" class="brand">
           <span class="logo"></span>
           <h1>Crewdog.demo</h1>
         </a>
@@ -57,20 +43,10 @@
           <span class="subtitle">Theme</span>
           <input id="themeToggle" type="checkbox" aria-label="Toggle theme" />
         </label>
-        <a
-          href="./account.html"
-          class="button"
-          style="text-decoration: none"
-          aria-label="Account"
-        >
+        <a href="./account.html" class="button" aria-label="Account">
           <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
             <circle cx="12" cy="8" r="4"></circle>
-            <path
-              d="M4 20c0-4 4-6 8-6s8 2 8 6"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            ></path>
+            <path d="M4 20c0-4 4-6 8-6s8 2 8 6" fill="none" stroke="currentColor" stroke-width="2"></path>
           </svg>
           Account
         </a>
@@ -79,44 +55,29 @@
       <main class="grid">
         <section class="card">
           <div class="stack">
-            <p class="subtitle" style="margin: 0">
-              Paste a job description, optionally include potential leads, then
-              run.
-            </p>
+            <p class="subtitle">Paste a job description, optionally include potential leads, then run.</p>
 
-            <!-- ✅ Plan + quota strip -->
-            <div
-              id="run-plan"
-              class="panel"
-              style="
-                padding: 12px;
-                display: flex;
-                align-items: center;
-                gap: 10px;
-              "
-            >
+            <!-- Plan + quota strip -->
+            <div id="run-plan" class="panel plan-strip">
               <div id="runPlanPill" class="pill" data-status="none">
-                <span class="dot" aria-hidden="true"></span>
+                <span class="dot"></span>
                 <span id="runPlanText">Free</span>
               </div>
               <div class="subtitle">
                 <span id="runQuotaText">0 / 1 searches</span>
-                <span
-                  id="runRenewalText"
-                  class="muted"
-                  style="margin-left: 8px"
-                ></span>
+                <span id="runRenewalText" class="muted"></span>
               </div>
-              <div style="margin-left: auto">
-                <a href="./account.html" class="button ghost" id="upgradeLink"
-                  >Upgrade</a
-                >
+              <div class="ml-auto">
+                <a href="./account.html" class="button ghost" id="upgradeLink">Upgrade</a>
               </div>
             </div>
 
             <!-- Error/info banner -->
-            <div id="runBanner" class="error" style="display: none"></div>
+            <div id="runBanner" class="error" style="display:none"></div>
 
+            <!-- =============================
+                 Main form (existing preserved)
+                 ============================= -->
             <form
               id="gatecrasher-form"
               method="post"
@@ -124,79 +85,107 @@
               novalidate
             >
               <div class="row-3">
-                <!-- Left: JH checkbox -->
                 <div class="stack">
                   <label for="JH_tickbox" class="muted">Options</label>
                   <div class="inline-check">
-                    <input
-                      id="JH_tickbox"
-                      name="JH_tickbox"
-                      type="checkbox"
-                      value="yes"
-                    />
-                    <label for="JH_tickbox"
-                      >Include potential leads search?</label
-                    >
+                    <input id="JH_tickbox" name="JH_tickbox" type="checkbox" value="yes" />
+                    <label for="JH_tickbox">Include potential leads search?</label>
                   </div>
                 </div>
 
-                <div aria-hidden="true"></div>
+                <div></div>
 
-                <!-- Submit -->
-                <div class="stack">
-                  <label for="submitBtn" style="visibility: hidden"
-                    >&nbsp;</label
-                  >
+                <!-- right-aligned, compact button -->
+                <div class="stack submit">
+                  <label for="submitBtn" class="sr-only">Submit</label>
                   <button id="submitBtn" class="primary" type="submit">
-                    Run Search
+                    <span class="btn-spinner" aria-hidden="true"></span>
+                    <span class="btn-label">Run Search</span>
                   </button>
                 </div>
-
-                <div aria-hidden="true"></div>
               </div>
 
-              <div class="stack">
+              <!-- Requirements -->
+              <div class="alert info">
+                <strong>Before you run a search:</strong>
+                <ul>
+                  <li>The pasted job description must be <b>at least 300 characters</b>.</li>
+                  <li>The job description must include a <b>location</b> (e.g., city & country/state).</li>
+                </ul>
+              </div>
+
+              <!-- NEW FIELD: JD link -->
+              <div class="field">
+                <label for="JD_link">Job Description Link (optional)</label>
+                <input
+                  id="JD_link"
+                  name="JD_link"
+                  type="url"
+                  placeholder="Paste the job URL…"
+                  autocomplete="off"
+                />
+                <small class="muted">
+                  Paste either a <b>link</b> to the job or the <b>full description text</b> below — not both.
+                </small>
+              </div>
+
+              <!-- Existing JD textarea -->
+              <div class="field">
                 <label for="JD">Job Description (paste below)</label>
                 <textarea
                   id="JD"
                   name="JD"
                   placeholder="Paste the full job description here…"
-                  required
                 ></textarea>
               </div>
 
-              <!-- Hidden fallback for checkbox -->
               <input type="hidden" name="JH_tickbox" value="no" />
             </form>
 
+            <!-- Results area -->
             <div id="result" class="result"></div>
+
+            <!-- 🔥 Global search loading overlay -->
+            <div id="searchLoader" aria-hidden="true">
+              <div class="gc-card" role="status" aria-live="polite" aria-label="Searching">
+                <div class="gc-radar">
+                  <div class="gc-ring"></div>
+                  <div class="gc-pulse"></div>
+                </div>
+                <div class="gc-text">
+                  Searching
+                  <span class="gc-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+                </div>
+              </div>
+            </div>
+            <!-- /overlay -->
           </div>
         </section>
 
         <section class="card">
-          <h2 style="margin: 0 0 8px">What this tool does</h2>
-          <p class="subtitle" style="line-height: 1.5">
-            Reveals the likely end employer behind an agency job ad, shows HR
-            decision-makers, and optionally finds potential candidates/leads.
+          <h2>What this tool does</h2>
+          <p class="subtitle">
+            Reveals the likely end employer behind an agency job ad, shows HR decision-makers,
+            and optionally finds potential candidates/leads.
           </p>
         </section>
       </main>
     </div>
 
+    <!-- Footer (unchanged) -->
     <footer class="footer">
-      <nav class="footer-nav" aria-label="Footer">
+      <nav class="footer-nav">
         <a href="./Privacy_policy.html">Privacy Policy</a>
         <a href="./Terms_of_use.html">Terms of Use</a>
         <a href="./FAQ.html">FAQ</a>
         <a href="./Support.html">Support</a>
-        <a href="#" onclick="gcConsent && gcConsent.open(); return false;"
-          >Manage cookies</a
-        >
+        <a href="#" onclick="gcConsent && gcConsent.open(); return false;">Manage cookies</a>
       </nav>
       <div class="footer-copy">© Crewdog</div>
     </footer>
 
-    <!-- App entry (ESM) -->
+    <!-- Scripts -->
     <script type="module" src="/js/run.js"></script>
+    <script src="/js/run-validators.js"></script>
   </body>
 </html>

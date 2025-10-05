@@ -441,6 +441,67 @@
       </div>
     </div>
 
+    <!-- Cancellation Survey Modal -->
+    <div id="cancelModal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" style="display:none">
+      <div class="modal__card">
+        <div class="modal__head">
+          <h3 class="modal__title">Why do you want to cancel our subscription?</h3>
+          <button id="cancelClose" class="btn ghost" type="button" aria-label="Close">✕</button>
+        </div>
+
+        <form id="cancelForm" class="modal__body">
+          <div class="stack">
+            <label class="radio">
+              <input type="radio" name="reason" value="found_job" required />
+              <span>I found the job</span>
+            </label>
+            <label class="radio">
+              <input type="radio" name="reason" value="price_high" />
+              <span>The price is too high</span>
+            </label>
+            <label class="radio">
+              <input type="radio" name="reason" value="irrelevant_results" />
+              <span>I didn’t get relevant results</span>
+            </label>
+            <label class="radio">
+              <input type="radio" name="reason" value="just_testing" />
+              <span>I just wanted to check it out</span>
+            </label>
+            <label class="radio">
+              <input type="radio" name="reason" value="other" />
+              <span>Something else…</span>
+            </label>
+            <textarea id="cancelOther" placeholder="Tell us a bit more" style="display:none"></textarea>
+          </div>
+
+          <div class="modal__foot">
+            <button id="cancelNext" class="btn primary" type="submit">Continue</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Downsell Modal (spelling matches JS: 'downswellModal') -->
+    <div id="downswellModal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" style="display:none">
+      <div class="modal__card">
+        <div class="modal__head">
+          <h3 class="modal__title">Would £2/month work better?</h3>
+          <button class="btn ghost" type="button" aria-label="Close" onclick="document.getElementById('downswellModal').style.display='none'">✕</button>
+        </div>
+
+        <div class="modal__body">
+          <p class="subtitle" style="margin-bottom:12px">
+            Keep your access on a lighter plan for just £2/month — you can cancel anytime.
+          </p>
+        </div>
+
+        <div class="modal__foot">
+          <button id="keepForTwoBtn" class="btn primary" type="button">Keep for £2</button>
+          <button id="cancelAnywayBtn" class="btn danger" type="button">Cancel anyway</button>
+        </div>
+      </div>
+    </div>
+
     <!-- App entry -->
     <script type="module" src="/js/account.js"></script>
   </body>

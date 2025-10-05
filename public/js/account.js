@@ -29,7 +29,20 @@ function setShown(idOrEl, on) {
 }
 function notify(msg, type = "success") {
     if (window.__notify) return window.__notify(msg, type);
-    try { console.info(`[${type}] ${msg}`); } catch { }
+    try { console.info(`[${type}] ${msg}`); } catch { /* noop */ }
+}
+// Tiny helpers for modal wiring
+function showEl(el, on) {
+    if (!el) return;
+    el.setAttribute("aria-hidden", on ? "false" : "true");
+    el.style.display = on ? "flex" : "none";
+}
+function q(id) { return document.getElementById(id); }
+function escapeHtml(s = "") {
+    return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function fmtDateTime(iso) {
+    try { return new Date(iso).toLocaleString(); } catch { return ""; }
 }
 
 /* =========================
@@ -40,7 +53,7 @@ function initTheme() {
         const saved = localStorage.getItem("xrl-theme");
         const light = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
         document.documentElement.setAttribute("data-theme", saved || (light ? "light" : "dark"));
-    } catch { }
+    } catch { /* noop */ }
 }
 function initSidebarToggle() {
     const btn = document.getElementById("menuToggle");
@@ -121,7 +134,7 @@ export async function initProfilePrefill() {
     try {
         const savedName = localStorage.getItem("xrl-profile-name") || "";
         if (savedName) nameEl.value = savedName;
-    } catch { }
+    } catch { /* noop */ }
 
     const { email } = await getIdentity();
     if (email) emailEl.value = email;
@@ -145,7 +158,7 @@ function initEditSaveProfile() {
     let pollTimer = null;
     const show = (el, on) => el && (el.style.display = on ? "block" : "none");
 
-    try { pendingEmail = localStorage.getItem(PENDING_KEY) || null; } catch { }
+    try { pendingEmail = localStorage.getItem(PENDING_KEY) || null; } catch { /* noop */ }
     if (pendingEmail) { show(noticePending, true); startPendingPoll(); }
 
     async function checkEmailConfirmed() {
@@ -159,7 +172,7 @@ function initEditSaveProfile() {
                 clearInterval(pollTimer); pollTimer = null; pendingEmail = null;
                 notify("Email change confirmed.", "success");
             }
-        } catch { }
+        } catch { /* noop */ }
     }
     function startPendingPoll() {
         if (pollTimer) return;
@@ -180,7 +193,7 @@ function initEditSaveProfile() {
         saveBtn.style.display = "none";
         show(noticeError, false);
 
-        try { localStorage.setItem("xrl-profile-name", nameEl.value || ""); } catch { }
+        try { localStorage.setItem("xrl-profile-name", nameEl.value || ""); } catch { /* noop */ }
 
         if (!supabase) { notify("Profile saved.", "success"); return; }
         try {
@@ -234,12 +247,10 @@ const num = (v, d = 0) => {
     const n = typeof v === "string" ? Number(v.trim()) : Number(v);
     return Number.isFinite(n) ? n : d;
 };
-const isProStatus = (status) =>
-    ["active", "trialing", "past_due", "unpaid"].includes(String(status || "").toLowerCase());
 
 function normalizeSummary(s) {
     const status = s?.status || "none";
-    const pro = isProStatus(status);
+    const pro = ["active", "trialing", "past_due", "unpaid"].includes(String(status).toLowerCase());
 
     const capCandidates = [s?.searchCap, s?.cap, s?.searches?.cap, s?.quota?.cap, pro ? PRO_CAP : FREE_CAP];
     const cap = capCandidates.map((v) => num(v, NaN)).find((v) => Number.isFinite(v));
@@ -257,10 +268,24 @@ function normalizeSummary(s) {
     }
 
     const finalCap = Number.isFinite(cap) ? cap : (pro ? PRO_CAP : FREE_CAP);
-    const finalUsed = Math.max(0, num(used, 0));
-    const finalRemaining = Math.max(0, Number.isFinite(remaining) ? remaining : Math.max(0, finalCap - finalUsed));
+    let finalUsed = Math.max(0, num(used, 0));
+    let finalRemaining = Math.max(0, Number.isFinite(remaining) ? remaining : Math.max(0, finalCap - finalUsed));
 
-    return { status, pro, cap: finalCap, used: finalUsed, remaining: finalRemaining, renewalDate: s?.renewalDate || s?.renewal || null };
+    // FIX: new user on Free plan but backend returns creditsRemaining=0 while freeTryUsed=false
+    const freeTryUsed = s?.freeTryUsed ?? s?.has_claimed_free_try;
+    if (!pro && freeTryUsed === false) {
+        finalUsed = 0;
+        finalRemaining = FREE_CAP; // give full free allowance
+    }
+
+    return {
+        status,
+        pro,
+        cap: finalCap,
+        used: finalUsed,
+        remaining: finalRemaining,
+        renewalDate: s?.renewalDate || s?.renewal || null
+    };
 }
 
 function setQuota(used, total) {
@@ -270,8 +295,50 @@ function setQuota(used, total) {
     if (fill) requestAnimationFrame(() => { fill.style.width = pct + "%"; });
 }
 
+/* ---------- Billing helpers ---------- */
+async function startCheckout({ userId, email }) {
+    const res = await fetch(`${API_BASE}/stripe/create-checkout-session`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ userId, email })
+    });
+    if (!res.ok) throw new Error("Checkout failed");
+    const { url } = await res.json();
+    if (!url) throw new Error("No checkout URL");
+    window.location.href = url;
+}
+
+async function openBillingPortal({ userId, email }) {
+    const res = await fetch(`${API_BASE}/stripe/portal`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ userId, email })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data?.url) throw new Error(data?.error || "Could not open billing portal");
+    window.location.href = data.url;
+}
+
+// Immediately reset the current billing cycle (server will handle Stripe + credits)
+// Add this helper near your other billing helpers:
+
+async function renewNowImmediate({ userId }) {
+    const res = await fetch(`${API_BASE}/stripe/renew-now`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ userId })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data?.error || "Could not renew now");
+    return data; // { ok, invoice_status, payment_intent_status, client_secret? }
+}
+
+/* --------------------------- Updated renderSummary --------------------------- */
 function renderSummary(raw) {
-    const { status, pro, cap, used, remaining, renewalDate } = normalizeSummary(raw);
+    const { pro, cap, used, renewalDate } = normalizeSummary(raw);
 
     setQuota(Math.min(used, cap), cap);
 
@@ -302,10 +369,72 @@ function renderSummary(raw) {
 
     const upgrade = document.getElementById("upgradeBtn");
     const cancel = document.getElementById("cancelBtn");
-    if (upgrade) upgrade.style.display = pro ? "none" : "";
+
+    // Bind Upgrade/Renew CTA dynamically based on current state:
+    if (upgrade) {
+        upgrade.onclick = null;
+        upgrade.removeAttribute("disabled");
+
+        if (!pro) {
+            // Free → Upgrade (checkout)
+            upgrade.style.display = "";
+            upgrade.textContent = "Upgrade";
+            upgrade.onclick = async () => {
+                try {
+                    const { userId, email } = await getIdentity();
+                    if (!userId || !email) throw new Error("Sign in first.");
+                    upgrade.disabled = true;
+                    upgrade.textContent = "Redirecting…";
+                    await startCheckout({ userId, email });
+                } catch (err) {
+                    notify(err?.message || "Unable to start checkout.", "error");
+                    upgrade.disabled = false;
+                    upgrade.textContent = "Upgrade";
+                }
+            };
+        } else if (used >= cap) {
+            // Pro & at cap (25/25) → Renew now (immediate reset)
+            upgrade.style.display = "";
+            upgrade.textContent = "Renew now";
+            upgrade.onclick = async () => {
+                try {
+                    const { userId } = await getIdentity();
+                    if (!userId) throw new Error("Sign in first.");
+
+                    upgrade.disabled = true;
+                    upgrade.textContent = "Renewing…";
+
+                    const resp = await renewNowImmediate({ userId });
+
+                    if (resp?.payment_intent_status === "requires_action" && resp?.client_secret) {
+                        notify("Extra authentication required. Please complete the bank verification.", "info");
+                    }
+
+                    await refreshSummary();
+                    notify("Your cycle was reset. You now have fresh credits.", "success");
+                } catch (err) {
+                    notify(err?.message || "Could not renew now.", "error");
+
+                    // Optional: fallback to billing portal
+                    // try {
+                    //     const { userId, email } = await getIdentity();
+                    //     await openBillingPortal({ userId, email });
+                    // } catch { /* ignore */ }
+                } finally {
+                    upgrade.disabled = false;
+                    upgrade.textContent = "Renew now";
+                }
+            };
+        } else {
+            // Pro & has credits → hide CTA
+            upgrade.style.display = "none";
+        }
+    }
+
     if (cancel) cancel.disabled = !pro;
 }
 
+/* ---------- Summary wire-up ---------- */
 async function fetchSummary(userId) {
     const res = await fetch(`${API_BASE}/account/summary/${userId}`, { credentials: "include" });
     if (!res.ok) throw new Error("Summary failed");
@@ -323,23 +452,10 @@ async function refreshSummary() {
     }
 }
 
-async function startCheckout({ userId, email }) {
-    const res = await fetch(`${API_BASE}/stripe/create-checkout-session`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ userId, email })
-    });
-    if (!res.ok) throw new Error("Checkout failed");
-    const { url } = await res.json();
-    if (!url) throw new Error("No checkout URL");
-    window.location.href = url;
-}
-
 async function initAccountSummaryAndBilling() {
-    const upgrade = document.getElementById("upgradeBtn");
     const cancel = document.getElementById("cancelBtn");
 
+    // Initial fetch + dynamic button binding happens inside renderSummary
     await refreshSummary();
 
     const vis = () => { if (document.visibilityState === "visible") refreshSummary(); };
@@ -351,61 +467,191 @@ async function initAccountSummaryAndBilling() {
         const onMsg = (e) => { if (e?.data?.type === "search_used") refreshSummary(); };
         bc.addEventListener("message", onMsg);
         _teardowns.push(() => bc.removeEventListener("message", onMsg));
-    } catch { }
+    } catch { /* noop */ }
 
-    if (upgrade) {
-        const handler = async () => {
-            try {
-                const { userId, email } = await getIdentity();
-                if (!userId || !email) throw new Error("Sign in first.");
-                upgrade.disabled = true;
-                upgrade.textContent = "Redirecting…";
-                await startCheckout({ userId, email });
-            } catch (err) {
-                notify(err?.message || "Unable to start checkout.", "error");
-                upgrade.disabled = false;
-                upgrade.textContent = "Upgrade";
-            }
-        };
-        upgrade.addEventListener("click", handler);
-        _teardowns.push(() => upgrade.removeEventListener("click", handler));
-    }
-
+    // ===== Cancel → survey → downsell flow =====
     if (cancel) {
-        cancel.title = "Cancel from billing portal or contact support.";
+        const cancelModal = q("cancelModal");
+        const downswellModal = q("downswellModal"); // NOTE: matches HTML id
+        const cancelForm = q("cancelForm");
+        const cancelClose = q("cancelClose");
+        const cancelNext = q("cancelNext");
+        const cancelOther = q("cancelOther");
+        const keepForTwoBtn = q("keepForTwoBtn");
+        const cancelAnywayBtn = q("cancelAnywayBtn");
+
+        // Open survey
+        const onCancelClick = () => showEl(cancelModal, true);
+
+        // Show/hide "Something else…" textarea
+        cancelForm?.addEventListener("change", () => {
+            const v = cancelForm.reason?.value;
+            if (v === "other") {
+                cancelOther.style.display = "";
+            } else {
+                cancelOther.style.display = "none";
+                cancelOther.value = "";
+            }
+        });
+
+        // Close survey
+        cancelClose?.addEventListener("click", () => showEl(cancelModal, false));
+
+        // Submit survey -> save feedback -> open downsell
+        cancelForm?.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            try {
+                cancelNext.disabled = true; cancelNext.textContent = "Saving…";
+                const { userId } = await getIdentity();
+                if (!userId) throw new Error("Sign in first.");
+                const reason = cancelForm.reason?.value;
+                const otherText = cancelOther.value?.trim() || undefined;
+
+                await fetch(`${API_BASE}/stripe/cancel/feedback`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({ userId, reason, otherText })
+                });
+
+                showEl(cancelModal, false);
+                showEl(downswellModal, true);
+            } catch (err) {
+                notify(err?.message || "Couldn’t save feedback.", "error");
+            } finally {
+                cancelNext.disabled = false; cancelNext.textContent = "Continue";
+            }
+        });
+
+        // Downsell -> keep for £2
+        keepForTwoBtn?.addEventListener("click", async () => {
+            try {
+                keepForTwoBtn.disabled = true; keepForTwoBtn.textContent = "Updating…";
+                const { userId } = await getIdentity();
+                if (!userId) throw new Error("Sign in first.");
+
+                const r = await fetch(`${API_BASE}/stripe/downgrade`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({ userId })
+                });
+                const data = await r.json().catch(() => ({}));
+                if (!r.ok) throw new Error(data?.error || "Downgrade failed");
+
+                showEl(downswellModal, false);
+                notify("You’re now on the £2 plan.", "success");
+                await refreshSummary();
+            } catch (err) {
+                notify(err?.message || "Couldn’t downgrade.", "error");
+            } finally {
+                keepForTwoBtn.disabled = false; keepForTwoBtn.textContent = "Keep for £2";
+            }
+        });
+
+        // Downsell -> cancel anyway
+        cancelAnywayBtn?.addEventListener("click", async () => {
+            try {
+                cancelAnywayBtn.disabled = true; cancelAnywayBtn.textContent = "Cancelling…";
+                const { userId } = await getIdentity();
+                if (!userId) throw new Error("Sign in first.");
+
+                const r = await fetch(`${API_BASE}/stripe/cancel`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({ userId })
+                });
+                const data = await r.json().catch(() => ({}));
+                if (!r.ok) throw new Error(data?.error || "Cancel failed");
+
+                showEl(downswellModal, false);
+                notify("Your subscription will end at the period end.", "info");
+                await refreshSummary();
+            } catch (err) {
+                notify(err?.message || "Couldn’t cancel.", "error");
+            } finally {
+                cancelAnywayBtn.disabled = false; cancelAnywayBtn.textContent = "Cancel anyway";
+            }
+        });
+
+        // Enable & wire main Cancel button
+        cancel.removeAttribute("disabled");
+        cancel.title = "Manage subscription";
+        cancel.addEventListener("click", onCancelClick);
+        _teardowns.push(() => cancel.removeEventListener("click", onCancelClick));
     }
 }
 
 /* =========================
-   HISTORY + SUPPORT + PASSWORD
+   HISTORY (REAL DATA)
    ========================= */
-function initHistoryPlaceholders() {
-    const list = document.getElementById("historyList");
-    if (!list) return;
-    const items = [
-        { title: "Software Engineer", company: "Globex", url: "https://globex.example", hr: ["Alice", "Bob"], jd: "Lorem ipsum JD…" },
-        { title: "Data Analyst", company: "Initech", url: "https://initech.example", hr: ["Carol", "Dan"], jd: "Lorem ipsum JD…" },
-    ];
-    items.forEach((it) => {
+async function fetchSearchHistory({ userId, limit = 20, cursor = null }) {
+    // Build clean URL without double-origin pitfalls
+    const base = (API_BASE || "").replace(/\/$/, "");
+    const href = `${base}/searches`;                    // "/api/searches" or "http://.../api/searches"
+    const url = new URL(href, window.location.origin);  // Works for relative or absolute API_BASE
+
+    url.searchParams.set("userId", userId);
+    url.searchParams.set("limit", String(limit));
+    if (cursor) url.searchParams.set("cursor", cursor);
+
+    const res = await fetch(url.toString(), { credentials: "include" });
+    if (!res.ok) throw new Error("History fetch failed");
+    return res.json();
+}
+
+function renderHistoryItems(container, items) {
+    const frag = document.createDocumentFragment();
+
+    items.forEach((row) => {
         const el = document.createElement("div");
         el.className = "hist-item";
+
+        // Deduplicate by profileUrl (preferred) or name
+        const hrMap = new Map(
+            (Array.isArray(row.hrContacts) ? row.hrContacts : [])
+                .map(c => {
+                    const key = c?.profileUrl ? `url:${c.profileUrl}` : `n:${(c?.name || '').toLowerCase()}`;
+                    return [key, c?.name || ""];
+                })
+        );
+        const hrNames = [...hrMap.values()].filter(Boolean);
+
+        const title = escapeHtml(row.jobTitle || "Untitled role");
+        const company = escapeHtml(row.companyName || "");
+        const website = row.companyUrl ? escapeHtml(row.companyUrl) : "";
+        const jdExcerpt = escapeHtml(row.jdExcerpt || "");
+        const hrLine = escapeHtml(hrNames.join(", "));
+        const createdAt = fmtDateTime(row.createdAt);
+        const sourceType = escapeHtml(row.sourceType || (row.sourceUrl ? "url" : "paste"));
+        const sourceUrl = row.sourceUrl ? escapeHtml(row.sourceUrl) : "";
+
         el.innerHTML = `
       <div class="hist-head" role="button" aria-expanded="false">
         <div>
-          <h4>${it.title} — ${it.company}</h4>
-          <div class="hist-meta">HR: ${it.hr.join(", ")}</div>
+          <h4>${title}${company ? ` — ${company}` : ""}</h4>
+          <div class="hist-meta">
+            ${hrLine ? `HR: ${hrLine}` : "HR: —"}
+            ${createdAt ? ` • ${createdAt}` : ""}
+          </div>
         </div>
         <div><span class="badge">Details</span></div>
       </div>
-      <div class="hist-body" aria-hidden="true">
-        <div class="stack"><label>Job title</label><input type="text" value="${it.title}" readonly></div>
-        <div class="stack"><label>Company name</label><input type="text" value="${it.company}" readonly></div>
-        <div class="stack"><label>Company URL</label><input type="text" value="${it.url}" readonly></div>
-        <div class="stack"><label>Pasted Job description</label><textarea readonly>${it.jd}</textarea></div>
-        <div class="stack"><label>All HRs</label><input type="text" value="${it.hr.join(", ")}" readonly></div>
+
+      <div class="hist-body" aria-hidden="true" style="display:none">
+        <div class="stack"><label>Job title</label><input type="text" value="${title}" readonly></div>
+        <div class="stack"><label>Company name</label><input type="text" value="${company || "—"}" readonly></div>
+        <div class="stack"><label>Company URL</label><input type="text" value="${website || "—"}" readonly></div>
+
+        <div class="stack"><label>Source</label><input type="text" value="${sourceType === "url" ? "Link" : "Pasted text"}" readonly></div>
+        <div class="stack"><label>Source URL</label><input type="text" value="${sourceUrl || "—"}" readonly></div>
+
+        <div class="stack"><label>Pasted Job description (excerpt)</label><textarea readonly>${jdExcerpt}</textarea></div>
+        <div class="stack"><label>All HRs</label><input type="text" value="${hrLine || "—"}" readonly></div>
       </div>
     `;
-        list.appendChild(el);
+
         const head = el.querySelector(".hist-head");
         const body = el.querySelector(".hist-body");
         const clickHandler = () => {
@@ -416,9 +662,68 @@ function initHistoryPlaceholders() {
         };
         head.addEventListener("click", clickHandler);
         _teardowns.push(() => head.removeEventListener("click", clickHandler));
+
+        frag.appendChild(el);
     });
+
+    container.appendChild(frag);
 }
 
+async function initSearchHistory() {
+    const list = document.getElementById("historyList");
+    const empty = document.getElementById("historyEmpty");
+    if (!list) return;
+
+    list.innerHTML = "";
+
+    try {
+        const { userId } = await getIdentity();
+        if (!userId) {
+            if (empty) empty.style.display = "block";
+            return;
+        }
+
+        const data = await fetchSearchHistory({ userId, limit: 20 });
+        if (!data?.ok || !Array.isArray(data.items)) throw new Error("Bad history payload");
+
+        if (data.items.length === 0) {
+            if (empty) empty.style.display = "block";
+            return;
+        }
+        if (empty) empty.style.display = "none";
+
+        renderHistoryItems(list, data.items);
+
+        // Optional "Load more"
+        const moreBtn = document.getElementById("historyMore");
+        if (moreBtn) {
+            let cursor = data.nextCursor || null;
+            const onMore = async () => {
+                moreBtn.disabled = true; moreBtn.textContent = "Loading…";
+                try {
+                    if (!cursor) return;
+                    const nxt = await fetchSearchHistory({ userId, limit: 20, cursor });
+                    renderHistoryItems(list, nxt.items || []);
+                    cursor = nxt.nextCursor || null;
+                    if (!cursor) moreBtn.style.display = "none";
+                } catch {
+                    notify("Couldn’t load more history.", "error");
+                } finally {
+                    moreBtn.disabled = false; moreBtn.textContent = "Load more";
+                }
+            };
+            moreBtn.addEventListener("click", onMore);
+            _teardowns.push(() => moreBtn.removeEventListener("click", onMore));
+            if (!data.nextCursor) moreBtn.style.display = "none";
+        }
+    } catch {
+        if (empty) empty.style.display = "block";
+    }
+}
+
+/* =========================
+   SUPPORT + PASSWORD
+   ========================= */
 function initSupportForm() {
     const form = document.getElementById("support-form");
     if (!form) return;
@@ -526,7 +831,7 @@ async function initLogout() {
         try {
             const supabase = (await getSupabaseClient()) || (await waitForSupabase());
             if (supabase) await supabase.auth.signOut();
-        } catch { }
+        } catch { /* noop */ }
         window.location.href = "./login.html";
     };
 
@@ -545,10 +850,12 @@ export function initAccountPage() {
     initSidebarToggle();
     initSectionSwitching();
     initEditSaveProfile();
-    initHistoryPlaceholders();
+    initSearchHistory();              // <<< real history
     initSupportForm();
     initPasswordChange();
     initLogout();
+    // Optional theme toggle hook if you expose it somewhere:
+    try { if (typeof initThemeToggle === "function") initThemeToggle(); } catch { /* noop */ }
 
     onDomReady(async () => {
         await initProfilePrefill();
@@ -560,7 +867,7 @@ export function initAccountPage() {
 }
 
 export function teardownAccountPage() {
-    for (const t of _teardowns.splice(0)) { try { t(); } catch { } }
+    for (const t of _teardowns.splice(0)) { try { t(); } catch { /* noop */ } }
     _initialized = false;
 }
 

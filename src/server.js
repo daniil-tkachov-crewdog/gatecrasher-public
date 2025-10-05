@@ -9,6 +9,7 @@ const { applySecurity } = require('./middleware/security');
 const stripeRoutes = require('./routes/stripe.routes');
 const n8nRoutes = require('./routes/n8n.routes');
 const accountRoutes = require('./routes/account.routes');
+const searchesRoutes = require('./routes/searches.routes');
 
 const app = express();
 
@@ -33,6 +34,7 @@ app.get('/api/ping', (_req, res) => {
 app.use('/api/stripe', stripeRoutes);
 app.use('/api/n8n', n8nRoutes);
 app.use('/api/account', accountRoutes);
+app.use('/api/searches', searchesRoutes);
 
 // Centralized error handler
 app.use((err, req, res, next) => {
