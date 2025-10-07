@@ -33,6 +33,7 @@
     <script src="/js/theme-boot.js"></script>
     <link rel="stylesheet" href="/css/theme-boot.css" />
     <link rel="stylesheet" href="/css/run.css" />
+    <link rel="stylesheet" href="/css/footer.css" />
 
     <!-- Supabase & config -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -211,22 +212,10 @@
       </main>
     </div>
 
-    <!-- Footer (unchanged) -->
-    <footer class="footer">
-      <nav class="footer-nav">
-        <a href="./Privacy_policy.html">Privacy Policy</a>
-        <a href="./Terms_of_use.html">Terms of Use</a>
-        <a href="./FAQ.html">FAQ</a>
-        <a href="./Support.html">Support</a>
-        <a href="#" onclick="gcConsent && gcConsent.open(); return false;"
-          >Manage cookies</a
-        >
-      </nav>
-      <div class="footer-copy">© Crewdog</div>
-    </footer>
-
     <!-- Scripts -->
     <script type="module" src="/js/run.js"></script>
     <script src="/js/run-validators.js"></script>
+    <!-- Inject shared footer partial -->
+    <script src="/js/footer.js"></script>
   </body>
 </html>

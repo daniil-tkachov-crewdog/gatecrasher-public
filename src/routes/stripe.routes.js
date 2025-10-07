@@ -72,7 +72,7 @@ async function upsertSubscription(userId, sub) {
 async function getActiveSubRowForUser(userId) {
     const { data: row, error } = await supabaseAdmin
         .from('app_subscriptions')
-        .select('stripe_subscription_id, status')
+        .select('stripe_subscription_id, status, cancel_at_period_end, current_period_end') // UPDATED
         .eq('user_id', userId)
         .in('status', ['active', 'trialing', 'past_due', 'unpaid'])
         .order('current_period_end', { ascending: false })
@@ -377,6 +377,27 @@ router.post('/cancel', express.json(), async (req, res) => {
         const subRow = await getActiveSubRowForUser(userId);
         if (!subRow?.stripe_subscription_id) {
             return res.status(404).json({ error: 'No active subscription' });
+        }
+
+        // UPDATED: prevent double-cancel — if already scheduled, return 409
+        if (subRow.cancel_at_period_end) {
+            return res.status(409).json({
+                error: 'Cancellation already scheduled',
+                cancel_at_period_end: true,
+                current_period_end: subRow.current_period_end
+            });
+        }
+
+        // Extra safety: check live Stripe object too (in case DB is stale)
+        const liveSub = await stripe.subscriptions.retrieve(subRow.stripe_subscription_id);
+        if (liveSub.cancel_at_period_end) {
+            // Sync our DB and return 409
+            await upsertSubscription(userId, liveSub);
+            return res.status(409).json({
+                error: 'Cancellation already scheduled',
+                cancel_at_period_end: true,
+                current_period_end: toIso(liveSub.current_period_end)
+            });
         }
 
         const canceled = await stripe.subscriptions.update(subRow.stripe_subscription_id, {

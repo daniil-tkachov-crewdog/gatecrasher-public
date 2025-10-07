@@ -1,0 +1,45 @@
+/* =========================================================
+   Crewdog.demo — Footer Styles (footer.css)
+   ========================================================= */
+
+.footer {
+    flex-shrink: 0;
+    width: 100%;
+    background: var(--footer);
+    padding: 16px 12px 24px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.footer-nav {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+}
+
+.footer a {
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.footer a:hover,
+.footer a:focus {
+    text-decoration: underline;
+}
+
+/* Responsive tweak */
+@media (max-width: 560px) {
+    .footer {
+        font-size: 11px;
+        padding: 14px 8px 20px;
+    }
+
+    .footer-nav {
+        gap: 12px;
+    }
+}

@@ -18,6 +18,7 @@
 
     <!-- Page styles -->
     <link rel="stylesheet" href="/css/privacy.css" />
+    <link rel="stylesheet" href="/css/footer.css" />
 
     <!-- Consent loader (opens banner + exposes gcConsent.*, now with CSP-safe bindings) -->
     <script defer src="/js/consent.js"></script>
@@ -317,19 +318,10 @@
       </main>
     </div>
 
-    <footer class="footer">
-      <nav class="footer-nav" aria-label="Footer">
-        <a href="./Privacy_policy.html">Privacy Policy</a>
-        <a href="./Terms_of_use.html">Terms of Use</a>
-        <a href="./FAQ.html">FAQ</a>
-        <a href="./Support.html">Support</a>
-        <!-- Opens the banner without changing the current choice -->
-        <a href="#" data-consent="open">Manage cookies</a>
-      </nav>
-      <div class="footer-copy">© Crewdog</div>
-    </footer>
+    
 
     <!-- Page entry (ESM) -->
     <script type="module" src="/js/privacy.js"></script>
+    <script src="/js/footer.js"></script>
   </body>
 </html>

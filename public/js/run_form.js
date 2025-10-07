@@ -93,9 +93,8 @@ export function initRunForm({
             const payload = {
                 JD,
                 JD_link,
+                JH_tickbox: lastWantsLeads ? "yes" : "no",
                 "Save to the doc file and the spreadsheet? (+10 sec)": "No",
-                "Region to search (Candidates)": "Western Europe",
-                "Include potential leads search?": lastWantsLeads ? "Yes" : "No",
             };
 
             // Send JSON to n8n (form.action points to webhook/gatecrasher)

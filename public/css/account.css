@@ -603,3 +603,58 @@ textarea:focus {
     padding: 8px 6px;
     border-radius: 10px;
 }
+
+/* ===== Inline alerts for subscription actions ===== */
+.alert {
+    margin: 12px 0 0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    line-height: 1.35;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, .06);
+}
+
+.alert.success {
+    background: rgba(16, 185, 129, .12);
+    border: 1px solid rgba(16, 185, 129, .35);
+    color: #065f46;
+}
+
+.alert.error {
+    background: rgba(239, 68, 68, .10);
+    border: 1px solid rgba(239, 68, 68, .35);
+    color: #7f1d1d;
+}
+
+/* Optional: clickable modal backdrop close affordance */
+.modal {
+    cursor: default;
+}
+
+.modal.backdrop {
+    cursor: pointer;
+}
+
+
+/* ---------------- Pagination ---------------- */
+.pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 8px 0;
+    border-top: 1px solid var(--border);
+    margin-top: 20px;
+}
+
+.pagination .btn {
+    font-size: 13px;
+    padding: 6px 12px;
+    border-radius: 10px;
+}
+
+.pagination .subtitle {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+}

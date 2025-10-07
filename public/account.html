@@ -9,9 +9,9 @@
     <meta name="color-scheme" content="dark light" />
     <meta name="format-detection" content="telephone=no" />
     <meta http-equiv="x-ua-compatible" content="ie=edge" />
-    <title>X-Ray Link — Account</title>
+    <title>CrewDog — Account</title>
 
-    <!-- CSP (Stripe + Supabase + GA if you show consent banner here; remove GA lines if not needed) -->
+    <!-- CSP -->
     <meta
       http-equiv="Content-Security-Policy"
       content="
@@ -33,20 +33,18 @@
     <script src="/js/theme-boot.js"></script>
     <link rel="stylesheet" href="/css/theme-boot.css" />
     <link rel="stylesheet" href="/css/account.css" />
+    <link rel="stylesheet" href="/css/footer.css" />
 
     <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    <!-- Dev-only. Safe with CSP since it’s an external script from 'self'. -->
-    <!-- <script defer src="/js/env.dev.js"></script> -->
-
     <!-- Auth guard -->
     <script type="module" src="/js/auth_guard.js"></script>
   </head>
+
   <body>
     <div class="wrap">
       <div class="toprow">
-        <!-- Back button -->
         <a class="btn" href="./run.html" aria-label="Back to tool">
           <svg class="icon" viewBox="0 0 24 24" fill="none">
             <path
@@ -60,12 +58,10 @@
           Back to tool
         </a>
 
-        <!-- Right actions -->
         <div
           class="right-actions"
           style="display: flex; gap: 8px; align-items: center"
         >
-          <!-- Logout always visible -->
           <button
             id="logoutBtn"
             class="btn ghost"
@@ -84,7 +80,6 @@
             Logout
           </button>
 
-          <!-- Mobile menu toggle -->
           <button
             class="btn menu-btn"
             id="menuToggle"
@@ -128,13 +123,7 @@
         <!-- Panels -->
         <main class="panel">
           <!-- GENERAL -->
-          <section
-            id="panel-general"
-            data-panel
-            role="region"
-            aria-labelledby="general"
-            style="display: block"
-          >
+          <section id="panel-general" data-panel style="display: block">
             <div
               style="
                 display: flex;
@@ -144,12 +133,7 @@
               "
             >
               <h2 style="margin: 0">General</h2>
-              <button
-                id="editProfile"
-                class="btn ghost"
-                type="button"
-                title="Edit profile"
-              >
+              <button id="editProfile" class="btn ghost" type="button">
                 <svg class="icon" viewBox="0 0 24 24" fill="none">
                   <path
                     d="M12 20h9"
@@ -183,30 +167,19 @@
               />
             </div>
 
-            <!-- Email verification notices -->
             <div
               id="email-pending"
               class="success"
               style="display: none; margin-top: -4px"
-              role="status"
             >
-              We’ve sent a verification link to your new email. Confirm it to
-              finish the change.
+              We’ve sent a verification link to your new email.
             </div>
-            <div
-              id="email-error"
-              class="error"
-              style="display: none"
-              role="alert"
-            >
+            <div id="email-error" class="error" style="display: none">
               Couldn’t update your email. Please try again.
             </div>
 
-            <!-- PLAN & QUOTA -->
             <div class="stack">
               <label>Searches</label>
-
-              <!-- Plan callout -->
               <div
                 id="planCallout"
                 class="panel"
@@ -217,9 +190,8 @@
                   gap: 10px;
                 "
               >
-                <!-- badge reflects Free / Pro -->
                 <div id="planBadge" class="pill" data-status="none">
-                  <span class="dot" aria-hidden="true"></span>
+                  <span class="dot"></span>
                   <span id="planName">Free</span>
                 </div>
                 <div class="subtitle" id="planHelp">
@@ -229,19 +201,21 @@
                 </div>
               </div>
 
-              <!-- Quota numbers + bar -->
               <div class="quota">
                 <span class="muted" id="quotaText" style="font-size: 13px"
                   >0 / 1 searches</span
                 >
               </div>
-              <div class="bar" aria-label="Search quota">
+              <div class="bar">
                 <span id="quotaFill" style="width: 0%"></span>
               </div>
             </div>
 
             <div class="stack" style="margin-top: 12px">
               <label>Subscription</label>
+
+              <div id="subAlert" class="alert" style="display: none"></div>
+
               <div
                 style="
                   display: flex;
@@ -250,18 +224,15 @@
                   flex-wrap: wrap;
                 "
               >
-                <!-- Status pill + status text -->
                 <div id="subPill" class="pill" data-status="none">
-                  <span class="dot" aria-hidden="true"></span>
+                  <span class="dot"></span>
                   <span id="subStatus">Free — Active</span>
                 </div>
 
-                <!-- Optional renewal date display -->
                 <span class="subtitle" id="renewalWrap" style="display: none">
                   Renews: <span id="renewalDate">—</span>
                 </span>
 
-                <!-- Actions -->
                 <button id="upgradeBtn" class="btn" type="button">
                   Upgrade
                 </button>
@@ -270,62 +241,59 @@
                 </button>
               </div>
             </div>
-
-            <div
-              style="display: flex; justify-content: flex-end; margin-top: 16px"
-            >
-              <button
-                id="saveProfile"
-                class="btn primary"
-                type="button"
-                style="display: none"
-              >
-                Save
-              </button>
-            </div>
           </section>
 
           <!-- HISTORY -->
-          <section
-            id="panel-history"
-            data-panel
-            role="region"
-            aria-labelledby="history"
-            style="display: none"
-          >
+          <section id="panel-history" data-panel style="display: none">
             <h2 style="margin: 0 0 8px">Search History</h2>
             <p class="subtitle" style="margin: 0 0 12px">
-              Placeholders only. Click an item to expand.
+              Your recent searches (click to expand).
             </p>
+
+            <!-- Optional empty state (JS can show/hide) -->
+            <div
+              id="historyEmpty"
+              class="subtitle"
+              style="display: none; margin-bottom: 8px"
+            >
+              No searches yet.
+            </div>
+
             <div class="hist-list" id="historyList"></div>
+
+            <!-- Pagination controls -->
+            <nav
+              class="pagination"
+              id="historyPagination"
+              aria-label="Search history pages"
+              style="
+                margin-top: 16px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                gap: 10px;
+              "
+            >
+              <button id="prevPage" class="btn ghost" type="button" disabled>
+                ‹ Prev
+              </button>
+              <span id="pageInfo" class="subtitle">Page 1</span>
+              <button id="nextPage" class="btn ghost" type="button">
+                Next ›
+              </button>
+            </nav>
           </section>
 
           <!-- SETTINGS -->
-          <section
-            id="panel-settings"
-            data-panel
-            role="region"
-            aria-labelledby="settings"
-            style="display: none"
-          >
+          <section id="panel-settings" data-panel style="display: none">
             <h2 style="margin: 0 0 8px">Settings</h2>
 
             <div class="panel" style="padding: 12px; margin-bottom: 12px">
               <h3 style="margin: 0 0 8px; font-size: 16px">Change password</h3>
-              <div
-                id="pass-success"
-                class="success"
-                style="display: none"
-                role="status"
-              >
+              <div id="pass-success" class="success" style="display: none">
                 Password updated successfully.
               </div>
-              <div
-                id="pass-error"
-                class="error"
-                style="display: none"
-                role="alert"
-              ></div>
+              <div id="pass-error" class="error" style="display: none"></div>
               <div class="stack">
                 <label for="curpass">Current password</label>
                 <input id="curpass" type="password" placeholder="••••••••" />
@@ -342,35 +310,13 @@
                 Update
               </button>
             </div>
-
-            <div class="panel" style="padding: 12px">
-              <h3 style="margin: 0 0 8px; font-size: 16px">
-                Delete your account
-              </h3>
-              <p class="subtitle" style="margin: 0 0 10px">
-                Deleting your account is permanent and cannot be undone. All
-                data associated with your account will be removed.
-              </p>
-              <p style="margin: 0 0 10px; color: var(--warning)">
-                Please message us on the support page to delete your account.
-              </p>
-              <button class="btn danger" type="button" disabled>
-                Delete account
-              </button>
-            </div>
           </section>
 
           <!-- SUPPORT -->
-          <section
-            id="panel-support"
-            data-panel
-            role="region"
-            aria-labelledby="support"
-            style="display: none"
-          >
+          <section id="panel-support" data-panel style="display: none">
             <h2 style="margin: 0 0 8px">Support</h2>
             <p class="subtitle" style="margin: 0 0 10px">
-              Same form and endpoint as on the Support page.
+              Same form and endpoint as the main Support page.
             </p>
 
             <div id="support-success" class="success" role="status">
@@ -388,54 +334,18 @@
             >
               <div class="stack">
                 <label for="s_name">Name (optional)</label>
-                <input
-                  id="s_name"
-                  name="name"
-                  type="text"
-                  placeholder="Your name"
-                />
+                <input id="s_name" name="name" type="text" />
               </div>
 
               <div class="stack">
-                <label for="s_email"
-                  >Email address
-                  <span aria-hidden="true" style="color: #94a3b8"
-                    >*</span
-                  ></label
-                >
-                <input
-                  id="s_email"
-                  name="email"
-                  type="email"
-                  autocomplete="email"
-                  required
-                  placeholder="you@example.com"
-                />
+                <label for="s_email">Email address *</label>
+                <input id="s_email" name="email" type="email" required />
               </div>
 
               <div class="stack">
-                <label for="s_message"
-                  >Describe your problem / lead / suggestion
-                  <span aria-hidden="true" style="color: #94a3b8"
-                    >*</span
-                  ></label
-                >
-                <textarea
-                  id="s_message"
-                  name="message"
-                  required
-                  placeholder="Be clear and specific. What happened? What should be improved?"
-                ></textarea>
+                <label for="s_message">Message *</label>
+                <textarea id="s_message" name="message" required></textarea>
               </div>
-
-              <!-- Honeypot -->
-              <input
-                type="text"
-                name="website"
-                tabindex="-1"
-                autocomplete="off"
-                style="position: absolute; left: -9999px; opacity: 0"
-              />
 
               <button id="support-submit" class="btn primary" type="submit">
                 Submit
@@ -446,109 +356,8 @@
       </div>
     </div>
 
-    <!-- Cancellation Survey Modal -->
-    <div
-      id="cancelModal"
-      class="modal"
-      aria-hidden="true"
-      role="dialog"
-      aria-modal="true"
-      style="display: none"
-    >
-      <div class="modal__card">
-        <div class="modal__head">
-          <h3 class="modal__title">
-            Why do you want to cancel our subscription?
-          </h3>
-          <button
-            id="cancelClose"
-            class="btn ghost"
-            type="button"
-            aria-label="Close"
-          >
-            ✕
-          </button>
-        </div>
-
-        <form id="cancelForm" class="modal__body">
-          <div class="stack">
-            <label class="radio">
-              <input type="radio" name="reason" value="found_job" required />
-              <span>I found the job</span>
-            </label>
-            <label class="radio">
-              <input type="radio" name="reason" value="price_high" />
-              <span>The price is too high</span>
-            </label>
-            <label class="radio">
-              <input type="radio" name="reason" value="irrelevant_results" />
-              <span>I didn’t get relevant results</span>
-            </label>
-            <label class="radio">
-              <input type="radio" name="reason" value="just_testing" />
-              <span>I just wanted to check it out</span>
-            </label>
-            <label class="radio">
-              <input type="radio" name="reason" value="other" />
-              <span>Something else…</span>
-            </label>
-            <textarea
-              id="cancelOther"
-              placeholder="Tell us a bit more"
-              style="display: none"
-            ></textarea>
-          </div>
-
-          <div class="modal__foot">
-            <button id="cancelNext" class="btn primary" type="submit">
-              Continue
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- Downsell Modal (spelling matches JS: 'downswellModal') -->
-    <div
-      id="downswellModal"
-      class="modal"
-      aria-hidden="true"
-      role="dialog"
-      aria-modal="true"
-      style="display: none"
-    >
-      <div class="modal__card">
-        <div class="modal__head">
-          <h3 class="modal__title">Would £2/month work better?</h3>
-          <button
-            class="btn ghost"
-            type="button"
-            aria-label="Close"
-            onclick="document.getElementById('downswellModal').style.display='none'"
-          >
-            ✕
-          </button>
-        </div>
-
-        <div class="modal__body">
-          <p class="subtitle" style="margin-bottom: 12px">
-            Keep your access on a lighter plan for just £2/month — you can
-            cancel anytime.
-          </p>
-        </div>
-
-        <div class="modal__foot">
-          <button id="keepForTwoBtn" class="btn primary" type="button">
-            Keep for £2
-          </button>
-          <button id="cancelAnywayBtn" class="btn danger" type="button">
-            Cancel anyway
-          </button>
-        </div>
-      </div>
-    </div>
-
     <!-- App entry -->
     <script type="module" src="/js/account.js"></script>
+    <script src="/js/footer.js"></script>
   </body>
 </html>

@@ -18,6 +18,7 @@
 
     <title>Crewdog.demo — FAQ</title>
     <link rel="stylesheet" href="/css/faq.css" />
+    <link rel="stylesheet" href="/css/footer.css" />
   </head>
   <body>
     <div class="container">
@@ -48,10 +49,10 @@
               </summary>
               <div class="faq-body">
                 <p>
-                  X-Ray Link analyzes an agency job description to infer the
-                  most likely end employer, then surfaces that company’s website
-                  and relevant HR/People team profiles. Optionally, it can
-                  return potential candidate leads.
+                  CrewDog analyzes an agency job description to infer the most
+                  likely end employer, then surfaces that company’s website and
+                  relevant HR/People team profiles. Optionally, it can return
+                  potential candidate leads.
                 </p>
               </div>
             </details>
@@ -218,23 +219,11 @@
         </section>
       </main>
 
-      <footer class="footer">
-        <nav class="footer-nav" aria-label="Footer">
-          <a href="./Privacy_policy.html">Privacy Policy</a>
-          <a href="./Terms_of_use.html">Terms of Use</a>
-          <a href="./FAQ.html">FAQ</a>
-          <a href="./Support.html">Support</a>
-
-          <!-- New: opens the banner without changing the current choice -->
-          <a href="#" onclick="gcConsent && gcConsent.open(); return false;"
-            >Manage cookies</a
-          >
-        </nav>
-        <div class="footer-copy">© Crewdog</div>
-      </footer>
+      
     </div>
 
     <!-- Entry point (ESM) -->
     <script type="module" src="/js/faq.js"></script>
+    <script src="/js/footer.js"></script>
   </body>
 </html>

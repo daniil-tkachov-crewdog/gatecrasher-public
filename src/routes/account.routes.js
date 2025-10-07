@@ -1,10 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const { supabaseAdmin } = require('../lib/supabaseAdmin');
+// Assumes you have a Stripe client export like: module.exports = { stripe }
+const { stripe } = require('../lib/stripe');
 
 /**
  * GET /api/account/summary/:userId
- * Returns plan status and remaining credits.
+ * Returns plan status, remaining credits, renewal date, price, and cancel flag.
  */
 router.get('/summary/:userId', async (req, res) => {
     try {
@@ -31,14 +33,58 @@ router.get('/summary/:userId', async (req, res) => {
         if (quotaErr) throw quotaErr;
 
         const sub = subs?.[0] || null;
+
+        // Compute remaining credits (server truth)
         const remaining = quota ? Math.max(0, (quota.total_credits || 0) - (quota.used_credits || 0)) : 0;
+
+        // Enrich summary with price + cancel flag where possible
+        let price = null; // { amount, currency, interval }
+        let cancelAtPeriodEnd = !!sub?.cancel_at_period_end;
+        let renewalDate = sub?.current_period_end || null;
+
+        try {
+            // Prefer live Stripe subscription (most authoritative)
+            if (stripe && sub?.stripe_subscription_id) {
+                const s = await stripe.subscriptions.retrieve(sub.stripe_subscription_id, {
+                    expand: ['items.data.price'],
+                });
+
+                cancelAtPeriodEnd = !!s?.cancel_at_period_end;
+                renewalDate = s?.current_period_end ? new Date(s.current_period_end * 1000).toISOString() : renewalDate;
+
+                const pr = s?.items?.data?.[0]?.price;
+                if (pr) {
+                    price = {
+                        amount: pr.unit_amount || 0, // minor units; e.g. 200 = £2.00
+                        currency: (pr.currency || 'gbp').toLowerCase(),
+                        interval: pr.recurring?.interval || null,
+                    };
+                }
+            }
+
+            // Fallback: fetch price via stored price id (if present)
+            if (!price && stripe && (sub?.price_id || sub?.stripe_price_id)) {
+                const pr = await stripe.prices.retrieve(sub.price_id || sub.stripe_price_id);
+                price = {
+                    amount: pr.unit_amount || 0,
+                    currency: (pr.currency || 'gbp').toLowerCase(),
+                    interval: pr.recurring?.interval || null,
+                };
+            }
+        } catch (e) {
+            // Non-fatal: still return summary without price if Stripe is unavailable
+            console.warn('[account.summary] Price/Stripe lookup failed:', e?.message || e);
+        }
 
         const response = {
             status: sub?.status || 'none',
-            renewalDate: sub?.current_period_end || null,
+            renewalDate,
             creditsRemaining: remaining,
             freeTryUsed: !!quota?.has_claimed_free_try,
+            cancelAtPeriodEnd,
+            price, // { amount (minor units), currency, interval } or null
         };
+
         console.log('[account.summary] Response:', response);
         res.json(response);
     } catch (e) {
@@ -58,22 +104,7 @@ router.post('/consume', async (req, res) => {
         const { userId } = req.body || {};
         if (!userId) return res.status(400).json({ error: 'Missing userId' });
 
-        // Atomic decrement using Postgres UPDATE ... WHERE used_credits < total_credits
-        // NB: Supabase JS cannot express arithmetic in update directly; use RPC if you have it.
-        // Fallback here: do it with a single SQL statement via PostgREST RPC.
-        // If you DON'T have the RPC, uncomment the two-step fallback below.
-
-        // Try RPC first (recommended — create it in SQL editor):
-        // create or replace function app_consume_credit(p_user_id uuid)
-        // returns table(total_credits int, used_credits int)
-        // language sql as $$
-        //   update app_quotas
-        //   set used_credits = used_credits + 1,
-        //       updated_at = now()
-        //   where user_id = p_user_id and used_credits < total_credits
-        //   returning total_credits, used_credits;
-        // $$;
-
+        // Try RPC first (atomic decrement in DB)
         let rpcTried = false;
         let rpcData = null, rpcErr = null;
         try {
@@ -85,7 +116,6 @@ router.post('/consume', async (req, res) => {
         }
 
         if (rpcTried && !rpcErr && Array.isArray(rpcData)) {
-            // If no row returned, user had no credits left — keep at 0.
             if (rpcData.length === 0) {
                 return res.status(409).json({ error: 'No credits remaining', remaining: 0 });
             }
@@ -93,7 +123,7 @@ router.post('/consume', async (req, res) => {
             return res.json({ remaining: Math.max(0, (total_credits || 0) - (used_credits || 0)) });
         }
 
-        // ---------- Fallback (non-RPC, best-effort; small race risk if many concurrent calls) ----------
+        // ---------- Fallback (non-RPC, small race risk) ----------
         const { data: quota, error: qErr } = await supabaseAdmin
             .from('app_quotas')
             .select('*')
