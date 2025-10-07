@@ -1,10 +1,10 @@
 // src/routes/stripe.routes.js
 const express = require('express');
+const crypto = require('crypto');
 const router = express.Router();
 const { z } = require('zod');
 
 // IMPORTANT: your app should export stripe & supabaseAdmin from these helpers.
-// In tests we will mock these.
 const { stripe } = require('../lib/stripe');
 const { supabaseAdmin } = require('../lib/supabaseAdmin');
 
@@ -14,14 +14,13 @@ function must(name) {
     if (!v) throw new Error(`Missing env ${name}`);
     return v;
 }
-const PRICE_ID = must('STRIPE_PRICE_ID');                  // main Pro plan
-// Optional so the server boots even before you configure the £2 price:
-const PRICE_ID_2GBP = process.env.STRIPE_PRICE_ID_2GBP || null;
+const PRICE_ID = must('STRIPE_PRICE_ID'); // main Pro plan
+const PRICE_ID_2GBP = process.env.STRIPE_PRICE_ID_2GBP || null; // optional downsell
 const APP_BASE_URL = must('APP_BASE_URL');
 const ADMIN_API_KEY = must('ADMIN_API_KEY');
 const STRIPE_WEBHOOK_SECRET = must('STRIPE_WEBHOOK_SECRET').trim();
 
-/* Optional: explicit portal configuration id (bpc_...), not required */
+/* Optional billing portal configuration id (bpc_...), not required */
 const STRIPE_BILLING_PORTAL_CONFIGURATION_ID =
     process.env.STRIPE_BILLING_PORTAL_CONFIGURATION_ID || null;
 
@@ -54,25 +53,28 @@ function toIso(ts) {
 }
 
 async function upsertSubscription(userId, sub) {
-    return supabaseAdmin.from('app_subscriptions').upsert({
-        user_id: userId,
-        stripe_subscription_id: sub.id,
-        product_id: sub.items?.data?.[0]?.price?.product || null,
-        price_id: sub.items?.data?.[0]?.price?.id || null,
-        status: sub.status,
-        current_period_start: toIso(sub.current_period_start),
-        current_period_end: toIso(sub.current_period_end),
-        cancel_at: toIso(sub.cancel_at),
-        cancel_at_period_end: !!sub.cancel_at_period_end,
-        trial_end: toIso(sub.trial_end),
-    }, { onConflict: 'stripe_subscription_id' });
+    return supabaseAdmin.from('app_subscriptions').upsert(
+        {
+            user_id: userId,
+            stripe_subscription_id: sub.id,
+            product_id: sub.items?.data?.[0]?.price?.product || null,
+            price_id: sub.items?.data?.[0]?.price?.id || null,
+            status: sub.status,
+            current_period_start: toIso(sub.current_period_start),
+            current_period_end: toIso(sub.current_period_end),
+            cancel_at: toIso(sub.cancel_at),
+            cancel_at_period_end: !!sub.cancel_at_period_end,
+            trial_end: toIso(sub.trial_end),
+        },
+        { onConflict: 'stripe_subscription_id' }
+    );
 }
 
 /* Active/trialing subscription for a user (from our DB) */
 async function getActiveSubRowForUser(userId) {
     const { data: row, error } = await supabaseAdmin
         .from('app_subscriptions')
-        .select('stripe_subscription_id, status, cancel_at_period_end, current_period_end') // UPDATED
+        .select('stripe_subscription_id, status, cancel_at_period_end, current_period_end')
         .eq('user_id', userId)
         .in('status', ['active', 'trialing', 'past_due', 'unpaid'])
         .order('current_period_end', { ascending: false })
@@ -88,6 +90,7 @@ router.post('/create-checkout-session', express.json(), async (req, res) => {
         const Schema = z.object({ userId: z.string().uuid(), email: z.string().email() });
         const { userId, email } = Schema.parse(req.body);
 
+        // Ensure Stripe customer exists and is persisted
         let { data: existing, error: selErr } = await supabaseAdmin
             .from('app_users')
             .select('user_id, email, stripe_customer_id')
@@ -99,17 +102,14 @@ router.post('/create-checkout-session', express.json(), async (req, res) => {
         if (!customerId) {
             customerId = await getOrCreateCustomerByEmail(email, userId);
             if (existing) {
-                await supabaseAdmin.from('app_users')
-                    .update({ email, stripe_customer_id: customerId })
-                    .eq('user_id', userId);
+                await supabaseAdmin.from('app_users').update({ email, stripe_customer_id: customerId }).eq('user_id', userId);
             } else {
-                await supabaseAdmin.from('app_users')
-                    .insert({ user_id: userId, email, stripe_customer_id: customerId });
+                await supabaseAdmin.from('app_users').insert({ user_id: userId, email, stripe_customer_id: customerId });
             }
         }
 
-        const idempotencyKey = `co_${userId}_${PRICE_ID}`;
-        const session = await stripe.checkout.sessions.create({
+        // Build exact payload
+        const payload = {
             mode: 'subscription',
             customer: customerId,
             line_items: [{ price: PRICE_ID, quantity: 1 }],
@@ -118,7 +118,24 @@ router.post('/create-checkout-session', express.json(), async (req, res) => {
             cancel_url: `${APP_BASE_URL}/cancel.html`,
             client_reference_id: userId,
             metadata: { user_id: userId },
-        }, { idempotencyKey });
+        };
+
+        // Deterministic idempotency key that changes if payload changes (e.g., APP_BASE_URL)
+        const payloadHash = crypto.createHash('sha256').update(JSON.stringify(payload)).digest('hex').slice(0, 16);
+        let idempotencyKey = `co_${userId}_${PRICE_ID}_${payloadHash}`;
+
+        let session;
+        try {
+            session = await stripe.checkout.sessions.create(payload, { idempotencyKey });
+        } catch (e) {
+            // Helpful in local/dev: if Stripe says same key used with different params, retry once with a fresh key
+            if (e.rawType === 'idempotency_error') {
+                idempotencyKey = `co_${userId}_${PRICE_ID}_${payloadHash}_${Date.now()}`;
+                session = await stripe.checkout.sessions.create(payload, { idempotencyKey });
+            } else {
+                throw e;
+            }
+        }
 
         return res.json({ url: session.url });
     } catch (e) {
@@ -127,20 +144,13 @@ router.post('/create-checkout-session', express.json(), async (req, res) => {
     }
 });
 
-/* ============================ NEW: Billing Portal ============================ */
-/** POST /api/stripe/portal
- * Body: { userId: uuid, email: string }
- * Returns: { url }
- */
+/* ============================ Billing Portal ============================ */
+/** POST /api/stripe/portal  Body: { userId: uuid, email: string } -> { url } */
 router.post('/portal', express.json(), async (req, res) => {
     try {
-        const Schema = z.object({
-            userId: z.string().uuid(),
-            email: z.string().email()
-        });
+        const Schema = z.object({ userId: z.string().uuid(), email: z.string().email() });
         const { userId, email } = Schema.parse(req.body);
 
-        // Find or create Stripe customer and persist if needed
         let { data: existing, error: selErr } = await supabaseAdmin
             .from('app_users')
             .select('stripe_customer_id')
@@ -159,7 +169,7 @@ router.post('/portal', express.json(), async (req, res) => {
         const session = await stripe.billingPortal.sessions.create({
             customer: customerId,
             return_url: `${APP_BASE_URL}/account.html`,
-            ...(STRIPE_BILLING_PORTAL_CONFIGURATION_ID ? { configuration: STRIPE_BILLING_PORTAL_CONFIGURATION_ID } : {})
+            ...(STRIPE_BILLING_PORTAL_CONFIGURATION_ID ? { configuration: STRIPE_BILLING_PORTAL_CONFIGURATION_ID } : {}),
         });
 
         return res.json({ url: session.url });
@@ -203,7 +213,10 @@ router.post('/webhook', express.raw({ type: '*/*' }), async (req, res) => {
                 const userId = await findUserIdByCustomerId(sub.customer);
                 if (!userId) break;
                 await upsertSubscription(userId, sub);
-                if (invoice.billing_reason === 'subscription_cycle' || invoice.billing_reason === 'subscription_create') {
+                if (
+                    invoice.billing_reason === 'subscription_cycle' ||
+                    invoice.billing_reason === 'subscription_create'
+                ) {
                     await supabaseAdmin.rpc('reset_monthly_credits', {
                         p_user_id: userId,
                         p_start: toIso(sub.current_period_start),
@@ -234,11 +247,14 @@ router.post('/webhook', express.raw({ type: '*/*' }), async (req, res) => {
                 const sub = event.data.object;
                 const userId = await findUserIdByCustomerId(sub.customer);
                 if (!userId) break;
-                await supabaseAdmin.from('app_subscriptions').update({
-                    status: 'canceled',
-                    cancel_at_period_end: false,
-                    current_period_end: new Date().toISOString(),
-                }).eq('stripe_subscription_id', sub.id);
+                await supabaseAdmin
+                    .from('app_subscriptions')
+                    .update({
+                        status: 'canceled',
+                        cancel_at_period_end: false,
+                        current_period_end: new Date().toISOString(),
+                    })
+                    .eq('stripe_subscription_id', sub.id);
                 break;
             }
             default:
@@ -258,10 +274,12 @@ router.post('/admin/cancel', express.json(), async (req, res) => {
         if (req.headers['x-admin-key'] !== ADMIN_API_KEY) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
-        const Schema = z.object({
-            userId: z.string().uuid().optional(),
-            stripeSubscriptionId: z.string().optional(),
-        }).refine(v => v.userId || v.stripeSubscriptionId, { message: 'Provide userId or stripeSubscriptionId' });
+        const Schema = z
+            .object({
+                userId: z.string().uuid().optional(),
+                stripeSubscriptionId: z.string().optional(),
+            })
+            .refine((v) => v.userId || v.stripeSubscriptionId, { message: 'Provide userId or stripeSubscriptionId' });
 
         const body = Schema.parse(req.body);
         let subId = body.stripeSubscriptionId;
@@ -284,16 +302,14 @@ router.post('/admin/cancel', express.json(), async (req, res) => {
     }
 });
 
-/* ========================== NEW: Customer cancel flow ========================== */
-/** POST /api/stripe/cancel/feedback
- * Body: { userId: uuid, reason: string, otherText?: string }
- */
+/* ========================== Customer cancel & downsell ========================== */
+/** POST /api/stripe/cancel/feedback */
 router.post('/cancel/feedback', express.json(), async (req, res) => {
     try {
         const Schema = z.object({
             userId: z.string().uuid(),
             reason: z.string().min(1),
-            otherText: z.string().optional()
+            otherText: z.string().optional(),
         });
         const { userId, reason, otherText } = Schema.parse(req.body);
 
@@ -302,15 +318,13 @@ router.post('/cancel/feedback', express.json(), async (req, res) => {
             return res.status(404).json({ error: 'No active subscription' });
         }
 
-        const { error } = await supabaseAdmin
-            .from('app_cancellation_feedback')
-            .insert({
-                user_id: userId,
-                subscription_id: subRow.stripe_subscription_id,
-                reason,
-                other_text: otherText || null,
-                downgraded: false
-            });
+        const { error } = await supabaseAdmin.from('app_cancellation_feedback').insert({
+            user_id: userId,
+            subscription_id: subRow.stripe_subscription_id,
+            reason,
+            other_text: otherText || null,
+            downgraded: false,
+        });
         if (error) throw error;
 
         return res.json({ ok: true });
@@ -320,9 +334,7 @@ router.post('/cancel/feedback', express.json(), async (req, res) => {
     }
 });
 
-/** POST /api/stripe/downgrade
- * Body: { userId: uuid }
- */
+/** POST /api/stripe/downgrade  Body: { userId } */
 router.post('/downgrade', express.json(), async (req, res) => {
     try {
         if (!PRICE_ID_2GBP) {
@@ -337,26 +349,23 @@ router.post('/downgrade', express.json(), async (req, res) => {
             return res.status(404).json({ error: 'No active subscription' });
         }
 
-        // Retrieve subscription to get item id
         const sub = await stripe.subscriptions.retrieve(subRow.stripe_subscription_id);
         const subItem = sub.items?.data?.[0];
         if (!subItem?.id) throw new Error('Subscription item not found');
 
         const updated = await stripe.subscriptions.update(sub.id, {
             items: [{ id: subItem.id, price: PRICE_ID_2GBP, quantity: 1 }],
-            proration_behavior: 'none'
+            proration_behavior: 'none',
         });
 
-        // Refresh local state
         await upsertSubscription(userId, updated);
 
-        // Insert a marker feedback row indicating the user accepted the downsell
         await supabaseAdmin.from('app_cancellation_feedback').insert({
             user_id: userId,
             subscription_id: updated.id,
             reason: 'downgraded_offer_accepted',
             other_text: null,
-            downgraded: true
+            downgraded: true,
         });
 
         return res.json({ ok: true, status: updated.status, price_id: PRICE_ID_2GBP });
@@ -366,9 +375,7 @@ router.post('/downgrade', express.json(), async (req, res) => {
     }
 });
 
-/** POST /api/stripe/cancel
- * Body: { userId: uuid }
- */
+/** POST /api/stripe/cancel  Body: { userId } */
 router.post('/cancel', express.json(), async (req, res) => {
     try {
         const Schema = z.object({ userId: z.string().uuid() });
@@ -379,29 +386,28 @@ router.post('/cancel', express.json(), async (req, res) => {
             return res.status(404).json({ error: 'No active subscription' });
         }
 
-        // UPDATED: prevent double-cancel — if already scheduled, return 409
+        // prevent double-cancel — if already scheduled, return 409
         if (subRow.cancel_at_period_end) {
             return res.status(409).json({
                 error: 'Cancellation already scheduled',
                 cancel_at_period_end: true,
-                current_period_end: subRow.current_period_end
+                current_period_end: subRow.current_period_end,
             });
         }
 
-        // Extra safety: check live Stripe object too (in case DB is stale)
+        // Check live Stripe object too (in case DB is stale)
         const liveSub = await stripe.subscriptions.retrieve(subRow.stripe_subscription_id);
         if (liveSub.cancel_at_period_end) {
-            // Sync our DB and return 409
             await upsertSubscription(userId, liveSub);
             return res.status(409).json({
                 error: 'Cancellation already scheduled',
                 cancel_at_period_end: true,
-                current_period_end: toIso(liveSub.current_period_end)
+                current_period_end: toIso(liveSub.current_period_end),
             });
         }
 
         const canceled = await stripe.subscriptions.update(subRow.stripe_subscription_id, {
-            cancel_at_period_end: true
+            cancel_at_period_end: true,
         });
 
         await upsertSubscription(userId, canceled);
@@ -413,12 +419,8 @@ router.post('/cancel', express.json(), async (req, res) => {
     }
 });
 
-/* ============================ NEW: Renew-now API ============================ */
-/** POST /api/stripe/renew-now
- * Body: { userId: uuid }
- * Forces a new billing cycle to start NOW (no proration). If the invoice is
- * immediately paid, we also reset credits; otherwise your webhook will.
- */
+/* ============================ Renew-now API ============================ */
+/** POST /api/stripe/renew-now  Body: { userId } */
 router.post('/renew-now', express.json(), async (req, res) => {
     try {
         const Schema = z.object({ userId: z.string().uuid() });
@@ -429,7 +431,6 @@ router.post('/renew-now', express.json(), async (req, res) => {
             return res.status(404).json({ error: 'No active subscription' });
         }
 
-        // Retrieve subscription (expand latest invoice & payment intent on update)
         const current = await stripe.subscriptions.retrieve(subRow.stripe_subscription_id);
 
         const updated = await stripe.subscriptions.update(current.id, {
@@ -439,18 +440,18 @@ router.post('/renew-now', express.json(), async (req, res) => {
             expand: ['latest_invoice.payment_intent', 'latest_invoice.charge'],
         });
 
-        // Persist subscription locally
         await upsertSubscription(userId, updated);
 
-        // Try to reset credits immediately if the new invoice is already paid
+        // If the new invoice is already paid, reset credits immediately
         let invoiceStatus = null;
         let paymentIntentStatus = null;
         let clientSecret = null;
 
         if (updated.latest_invoice) {
-            const inv = typeof updated.latest_invoice === 'string'
-                ? await stripe.invoices.retrieve(updated.latest_invoice, { expand: ['payment_intent'] })
-                : updated.latest_invoice;
+            const inv =
+                typeof updated.latest_invoice === 'string'
+                    ? await stripe.invoices.retrieve(updated.latest_invoice, { expand: ['payment_intent'] })
+                    : updated.latest_invoice;
 
             invoiceStatus = inv.status;
             paymentIntentStatus = inv.payment_intent?.status || null;
@@ -474,7 +475,7 @@ router.post('/renew-now', express.json(), async (req, res) => {
             subscription_status: updated.status,
             invoice_status: invoiceStatus,
             payment_intent_status: paymentIntentStatus,
-            client_secret: clientSecret
+            client_secret: clientSecret,
         });
     } catch (e) {
         console.error('[stripe] /renew-now error', e);

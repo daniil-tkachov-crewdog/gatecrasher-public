@@ -211,11 +211,36 @@ function renderNormalizedSummary(s, rawRenewal) {
         upgradeLink.removeAttribute("href");
 
         if (!s.pro) {
-            // Free → Upgrade
+            // Free → Stripe Checkout (same as account.js)
             upgradeLink.textContent = "Upgrade";
-            upgradeLink.href = "./account.html";
             setShown(upgradeLink, true);
-        } else if (s.remaining <= 0) {
+            upgradeLink.onclick = async (e) => {
+                e.preventDefault();
+                try {
+                    const { userId, email } = await getIdentity();
+                    if (!userId || !email) throw new Error("Please sign in first.");
+                    upgradeLink.textContent = "Redirecting…";
+                    upgradeLink.setAttribute("disabled", "true");
+
+                    const res = await fetch(`${API_BASE}/stripe/create-checkout-session`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        credentials: "include",
+                        body: JSON.stringify({ userId, email }),
+                    });
+
+                    const { url } = await res.json();
+                    if (!res.ok || !url) throw new Error("Failed to start checkout");
+                    window.location.href = url; // ✅ go to Stripe Checkout
+                } catch (err) {
+                    showBanner(err?.message || "Unable to start checkout.", "error");
+                    upgradeLink.textContent = "Upgrade";
+                    upgradeLink.removeAttribute("disabled");
+                }
+            };
+        }
+
+        else if (s.remaining <= 0) {
             // Pro & out of credits → Renew now (immediate cycle reset via backend)
             upgradeLink.textContent = "Renew now";
             setShown(upgradeLink, true);
@@ -257,7 +282,7 @@ function renderNormalizedSummary(s, rawRenewal) {
             submitBtn.textContent = s.pro ? "Out of credits" : "Upgrade to run";
             // (Optional tiny tooltip for clarity)
             submitBtn.title = s.pro ? "You’ve used all 25 searches. Click ‘Renew now’ to reset immediately." :
-                                      "Free plan includes 1 search/month. Upgrade for more.";
+                "Free plan includes 1 search/month. Upgrade for more.";
         } else if (!inFlight) {
             submitBtn.disabled = false;
             submitBtn.textContent = "Run Search";
