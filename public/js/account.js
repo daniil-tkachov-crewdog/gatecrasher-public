@@ -399,6 +399,7 @@ function renderSummary(raw) {
     const statusText = document.getElementById("subStatus");
     const subPill = document.getElementById("subPill");
     const cancelScheduled = !!raw?.cancelAtPeriodEnd;
+
     if (statusText) {
         if (pro && cancelScheduled && renewalDate) {
             const d = new Date(renewalDate);
@@ -504,13 +505,22 @@ function renderSummary(raw) {
         }
     }
 
-    // Keep cancel button visual state in sync (actual click binding handled elsewhere)
+    // === Decide Cancel enable/disable here ===
     const cancel = document.getElementById("cancelBtn");
     if (cancel) {
-        cancel.disabled = !pro;
-        cancel.title = pro ? "Manage subscription" : "No active subscription";
+        const shouldDisable = !pro || cancelScheduled; // Free users OR already scheduled cancel → disabled
+        cancel.disabled = shouldDisable;
+
+        if (!pro) {
+            cancel.title = "No active subscription";
+        } else if (cancelScheduled) {
+            cancel.title = "Cancellation already scheduled";
+        } else {
+            cancel.title = "Manage subscription";
+        }
     }
 }
+
 
 /* ---------- Summary wire-up ---------- */
 async function fetchSummary(userId) {
@@ -562,24 +572,40 @@ function wireModalCloses() {
 // Guarded binding: only allow opening cancel flow if Pro
 function bindCancelBasedOnStatus() {
     const cancelBtn = q("cancelBtn");
-    const cancelModal = q("cancelModal");
     if (!cancelBtn) return;
+
+    const wasDisabled = cancelBtn.disabled;
+    const prevTitle = cancelBtn.title;
 
     const fresh = cancelBtn.cloneNode(true);
     cancelBtn.replaceWith(fresh);
 
-    const status = q("subPill")?.dataset?.status;
-    if (status === "pro") {
-        fresh.disabled = false;
-        fresh.title = "Manage subscription";
-        const openSurvey = () => showEl(cancelModal, true);
-        fresh.addEventListener("click", openSurvey);
-        _teardowns.push(() => fresh.removeEventListener("click", openSurvey));
-    } else {
-        fresh.disabled = true;
-        fresh.title = "No active subscription";
-    }
+    // Preserve renderSummary's decision
+    fresh.disabled = wasDisabled;
+    if (prevTitle) fresh.title = prevTitle;
+
+    const openSurvey = async () => {
+        if (fresh.disabled) return; // ignore clicks if disabled
+
+        const modal = q("cancelModal");
+        if (modal) {
+            showEl(modal, true);
+        } else {
+            try {
+                const { userId, email } = await getIdentity();
+                if (!userId || !email) throw new Error("Sign in first.");
+                await openBillingPortal({ userId, email });
+            } catch (e) {
+                showSubAlert(e?.message || "Couldn't open billing portal.", "error");
+            }
+        }
+    };
+
+    fresh.addEventListener("click", openSurvey);
+    _teardowns.push(() => fresh.removeEventListener("click", openSurvey));
 }
+
+
 
 // Cancel action with 404/409 guards + userId body
 async function performCancel() {
@@ -605,6 +631,10 @@ async function performCancel() {
         }
         if (r.status === 409) {
             showSubAlert("Cancellation already scheduled — you’ll keep access until the period ends.", "info");
+
+            const btn = document.getElementById("cancelBtn");
+            if (btn) { btn.disabled = true; btn.title = "Cancellation already scheduled"; }
+
             await refreshSummary();
             bindCancelBasedOnStatus();
             return;
@@ -618,6 +648,9 @@ async function performCancel() {
         showEl(document.getElementById("downswellModal"), false);
         showEl(document.getElementById("cancelModal"), false);
 
+        const btn = document.getElementById("cancelBtn");
+        if (btn) { btn.disabled = true; btn.title = "Cancellation already scheduled"; }
+
         await refreshSummary();
         bindCancelBasedOnStatus();
     } catch (e) {
@@ -626,6 +659,7 @@ async function performCancel() {
         _actionBusy = false;
     }
 }
+
 
 // £2/month “keep” (downswell) action with userId body
 async function performDownsellToTwoPounds() {

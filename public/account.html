@@ -58,16 +58,8 @@
           Back to tool
         </a>
 
-        <div
-          class="right-actions"
-          style="display: flex; gap: 8px; align-items: center"
-        >
-          <button
-            id="logoutBtn"
-            class="btn ghost"
-            type="button"
-            title="Log out"
-          >
+        <div class="right-actions" style="display: flex; gap: 8px; align-items: center">
+          <button id="logoutBtn" class="btn ghost" type="button" title="Log out">
             <svg class="icon" viewBox="0 0 24 24" fill="none">
               <path
                 d="M15 12H3m12-6l6 6-6 6"
@@ -159,19 +151,10 @@
 
             <div class="stack">
               <label for="email">Email</label>
-              <input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                readonly
-              />
+              <input id="email" type="email" placeholder="you@example.com" readonly />
             </div>
 
-            <div
-              id="email-pending"
-              class="success"
-              style="display: none; margin-top: -4px"
-            >
+            <div id="email-pending" class="success" style="display: none; margin-top: -4px">
               We’ve sent a verification link to your new email.
             </div>
             <div id="email-error" class="error" style="display: none">
@@ -202,9 +185,7 @@
               </div>
 
               <div class="quota">
-                <span class="muted" id="quotaText" style="font-size: 13px"
-                  >0 / 1 searches</span
-                >
+                <span class="muted" id="quotaText" style="font-size: 13px">0 / 1 searches</span>
               </div>
               <div class="bar">
                 <span id="quotaFill" style="width: 0%"></span>
@@ -233,12 +214,8 @@
                   Renews: <span id="renewalDate">—</span>
                 </span>
 
-                <button id="upgradeBtn" class="btn" type="button">
-                  Upgrade
-                </button>
-                <button id="cancelBtn" class="btn ghost" type="button" disabled>
-                  Cancel
-                </button>
+                <button id="upgradeBtn" class="btn" type="button">Upgrade</button>
+                <button id="cancelBtn" class="btn ghost" type="button" disabled>Cancel</button>
               </div>
             </div>
           </section>
@@ -251,11 +228,7 @@
             </p>
 
             <!-- Optional empty state (JS can show/hide) -->
-            <div
-              id="historyEmpty"
-              class="subtitle"
-              style="display: none; margin-bottom: 8px"
-            >
+            <div id="historyEmpty" class="subtitle" style="display: none; margin-bottom: 8px">
               No searches yet.
             </div>
 
@@ -274,13 +247,9 @@
                 gap: 10px;
               "
             >
-              <button id="prevPage" class="btn ghost" type="button" disabled>
-                ‹ Prev
-              </button>
+              <button id="prevPage" class="btn ghost" type="button" disabled>‹ Prev</button>
               <span id="pageInfo" class="subtitle">Page 1</span>
-              <button id="nextPage" class="btn ghost" type="button">
-                Next ›
-              </button>
+              <button id="nextPage" class="btn ghost" type="button">Next ›</button>
             </nav>
           </section>
 
@@ -290,9 +259,7 @@
 
             <div class="panel" style="padding: 12px; margin-bottom: 12px">
               <h3 style="margin: 0 0 8px; font-size: 16px">Change password</h3>
-              <div id="pass-success" class="success" style="display: none">
-                Password updated successfully.
-              </div>
+              <div id="pass-success" class="success" style="display: none">Password updated successfully.</div>
               <div id="pass-error" class="error" style="display: none"></div>
               <div class="stack">
                 <label for="curpass">Current password</label>
@@ -300,15 +267,9 @@
               </div>
               <div class="stack">
                 <label for="newpass">New password</label>
-                <input
-                  id="newpass"
-                  type="password"
-                  placeholder="New secure password"
-                />
+                <input id="newpass" type="password" placeholder="New secure password" />
               </div>
-              <button id="updatePassword" class="btn primary" type="button">
-                Update
-              </button>
+              <button id="updatePassword" class="btn primary" type="button">Update</button>
             </div>
           </section>
 
@@ -347,12 +308,92 @@
                 <textarea id="s_message" name="message" required></textarea>
               </div>
 
-              <button id="support-submit" class="btn primary" type="submit">
-                Submit
-              </button>
+              <button id="support-submit" class="btn primary" type="submit">Submit</button>
             </form>
           </section>
         </main>
+      </div>
+    </div>
+
+    <!-- Cancellation Survey Modal -->
+    <div
+      id="cancelModal"
+      class="modal"
+      aria-hidden="true"
+      role="dialog"
+      aria-modal="true"
+      style="display: none"
+    >
+      <div class="modal__card">
+        <div class="modal__head">
+          <h3 class="modal__title">Why do you want to cancel our subscription?</h3>
+          <button id="cancelClose" class="btn ghost" type="button" aria-label="Close">✕</button>
+        </div>
+
+        <form id="cancelForm" class="modal__body">
+          <div class="stack">
+            <label class="radio">
+              <input type="radio" name="reason" value="found_job" required />
+              <span>I found the job</span>
+            </label>
+            <label class="radio">
+              <input type="radio" name="reason" value="price_high" />
+              <span>The price is too high</span>
+            </label>
+            <label class="radio">
+              <input type="radio" name="reason" value="irrelevant_results" />
+              <span>I didn’t get relevant results</span>
+            </label>
+            <label class="radio">
+              <input type="radio" name="reason" value="just_testing" />
+              <span>I just wanted to check it out</span>
+            </label>
+            <label class="radio">
+              <input type="radio" name="reason" value="other" />
+              <span>Something else…</span>
+            </label>
+            <textarea id="cancelOther" placeholder="Tell us a bit more" style="display: none"></textarea>
+          </div>
+
+          <div class="modal__foot">
+            <button id="cancelNext" class="btn primary" type="submit">Continue</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Downsell Modal -->
+    <div
+      id="downswellModal"
+      class="modal"
+      aria-hidden="true"
+      role="dialog"
+      aria-modal="true"
+      style="display: none"
+    >
+      <div class="modal__card">
+        <div class="modal__head">
+          <h3 class="modal__title">Would £2/month work better?</h3>
+          <button
+            class="btn ghost"
+            type="button"
+            aria-label="Close"
+            onclick="document.getElementById('downswellModal').style.display='none'"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div class="modal__body">
+          <p class="subtitle" style="margin-bottom: 12px">
+            Keep your access on a lighter plan for just £2/month — you can cancel anytime.
+          </p>
+        </div>
+
+        <div class="modal__foot">
+          <button id="keepForTwoBtn" class="btn primary" type="button">Keep for £2</button>
+          <button id="cancelAnywayBtn" class="btn danger" type="button">Cancel anyway</button>
+        </div>
       </div>
     </div>
 
