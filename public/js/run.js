@@ -3,9 +3,9 @@
 import { initThemeToggle } from "./theme.js";
 import { initAuthGuard } from "./auth_guard.js";
 import { initRunForm } from "./run_form.js";
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
+import { SUPABASE_URL, SUPABASE_ANON_KEY, STRIPE_PUBLISHABLE_KEY } from "./config.js";
 
-
+const stripe = window.Stripe?.(STRIPE_PUBLISHABLE_KEY);
 // Ensure dataLayer exists even before GTM loads
 window.dataLayer = window.dataLayer || [];
 
@@ -256,9 +256,26 @@ function renderNormalizedSummary(s, rawRenewal) {
 
                     // If SCA is required (rare in test), guide the user
                     if (resp?.payment_intent_status === "requires_action" && resp?.client_secret) {
-                        showBanner("Additional authentication required. Please check the Stripe popup or your bank app.", "info");
-                        // Optional: integrate Stripe.js confirmCardPayment(resp.client_secret) here.
+                        try {
+                            // load Stripe.js (publishable key should come from a config)
+                            const stripe = window.Stripe?.(window.STRIPE_PUBLISHABLE_KEY);
+                            if (!stripe) throw new Error("Stripe.js not loaded");
+
+                            const { error, paymentIntent } = await stripe.confirmCardPayment(resp.client_secret);
+                            if (error) throw error;
+
+                            if (paymentIntent?.status === "succeeded") {
+                                // paid → webhook will reset credits (and your backend also handles the immediate-paid path)
+                                showBanner("Payment confirmed. Resetting your credits…", "success");
+                            } else {
+                                showBanner("Payment not completed. Please try again.", "error");
+                            }
+                        } catch (e) {
+                            showBanner(e?.message || "Payment authentication failed.", "error");
+                            return; // stop here; don’t claim success
+                        }
                     }
+
 
                     // Refresh UI; webhook or immediate-paid path will have reset credits
                     await refreshSummaryAndUI();

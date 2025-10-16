@@ -16,7 +16,7 @@
       http-equiv="Content-Security-Policy"
       content="
         default-src 'self';
-        script-src 'self' https://cdn.jsdelivr.net https://www.googletagmanager.com https://www.google-analytics.com;
+        script-src 'self' https://cdn.jsdelivr.net https://www.googletagmanager.com https://www.google-analytics.com https://js.stripe.com;
         style-src 'self' 'unsafe-inline';
         img-src 'self' data: https://www.google-analytics.com;
         connect-src 'self'
@@ -25,10 +25,13 @@
         https://www.google-analytics.com https://region1.google-analytics.com
         https://www.googletagmanager.com
         https://crewdog.app.n8n.cloud;
-        frame-src https://www.googletagmanager.com;
+        frame-src https://www.googletagmanager.com https://js.stripe.com;
         form-action 'self' https://crewdog.app.n8n.cloud;
       "
     />
+
+    <script src="https://js.stripe.com/v3"></script>
+
 
     <script src="/js/theme-boot.js"></script>
     <link rel="stylesheet" href="/css/theme-boot.css" />

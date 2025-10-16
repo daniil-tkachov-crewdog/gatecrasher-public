@@ -1,11 +1,12 @@
 // /js/account.js — account summary + billing + profile + quota updates
 // Requires: window.supabase (CDN), /api/account/summary/:userId endpoint
 
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
+import { SUPABASE_URL, SUPABASE_ANON_KEY, STRIPE_PUBLISHABLE_KEY } from "./config.js";
 import { initThemeToggle } from "./theme.js";
 
 let _initialized = false;
 let _teardowns = [];
+const stripe = window.Stripe?.(STRIPE_PUBLISHABLE_KEY);
 
 /* =========================
    SMALL HELPERS
@@ -486,8 +487,25 @@ function renderSummary(raw) {
                     const resp = await renewNowImmediate({ userId });
 
                     if (resp?.payment_intent_status === "requires_action" && resp?.client_secret) {
-                        notify("Extra authentication required. Please complete the bank verification.", "info");
+                        try {
+                            const stripe = window.Stripe?.(window.STRIPE_PUBLISHABLE_KEY);
+                            if (!stripe) throw new Error("Stripe.js not loaded");
+
+                            const { error, paymentIntent } = await stripe.confirmCardPayment(resp.client_secret);
+                            if (error) throw error;
+
+                            if (paymentIntent?.status === "succeeded") {
+                                notify("Payment confirmed. Your credits are being reset…", "success");
+                            } else {
+                                notify("Payment not completed. Please try again.", "error");
+                                return;
+                            }
+                        } catch (e) {
+                            notify(e?.message || "Payment authentication failed.", "error");
+                            return;
+                        }
                     }
+
 
                     await refreshSummary();
                     bindCancelBasedOnStatus(); // keep Cancel in sync
