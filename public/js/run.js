@@ -31,7 +31,7 @@ const API_BASE = sanitizedWindowBase || (isLocalHost ? "http://localhost:3000/ap
 /* =========================
    Plan / quota sync + guard
    ========================= */
-const FREE_CAP = 1;
+const FREE_CAP = 3;
 const PRO_CAP = 25;
 
 let bc;
@@ -281,8 +281,10 @@ function renderNormalizedSummary(s, rawRenewal) {
             submitBtn.disabled = true;
             submitBtn.textContent = s.pro ? "Out of credits" : "Upgrade to run";
             // (Optional tiny tooltip for clarity)
-            submitBtn.title = s.pro ? "You’ve used all 25 searches. Click ‘Renew now’ to reset immediately." :
-                "Free plan includes 1 search/month. Upgrade for more.";
+            submitBtn.title = s.pro
+                ? "You’ve used all 25 searches. Click ‘Renew now’ to reset immediately."
+                : `Free plan includes ${FREE_CAP} ${FREE_CAP === 1 ? "search" : "searches"}/month. Upgrade for more.`;
+
         } else if (!inFlight) {
             submitBtn.disabled = false;
             submitBtn.textContent = "Run Search";
@@ -612,7 +614,7 @@ async function onSubmitGuard(e) {
         showBanner(
             s.pro
                 ? "You’ve used all your credits for this billing period."
-                : "Free plan allows 1 search per month. Upgrade to continue.",
+                : `Free plan allows ${FREE_CAP} ${FREE_CAP === 1 ? "search" : "searches"} per month. Upgrade to continue.`,
             "error"
         );
         const link = byId("upgradeLink");
@@ -623,6 +625,7 @@ async function onSubmitGuard(e) {
         }
         return;
     }
+
 
     // Optimistic local decrement immediately
     bumpLocalUsed(userId, s.renewalDate, s.cap, 1);

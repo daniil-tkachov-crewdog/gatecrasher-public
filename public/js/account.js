@@ -296,7 +296,7 @@ function initEditSaveProfile() {
 /* =========================
    QUOTA + SUBSCRIPTION
    ========================= */
-const FREE_CAP = 1;
+const FREE_CAP = 3;
 const PRO_CAP = 25;
 
 const num = (v, d = 0) => {

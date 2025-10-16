@@ -104,7 +104,7 @@ router.post('/consume', async (req, res) => {
         const { userId } = req.body || {};
         if (!userId) return res.status(400).json({ error: 'Missing userId' });
 
-        // Try RPC first (atomic decrement in DB)
+        // 1) Try RPC first (atomic decrement in DB)
         let rpcTried = false;
         let rpcData = null, rpcErr = null;
         try {
@@ -123,7 +123,7 @@ router.post('/consume', async (req, res) => {
             return res.json({ remaining: Math.max(0, (total_credits || 0) - (used_credits || 0)) });
         }
 
-        // ---------- Fallback (non-RPC, small race risk) ----------
+        // 2) Fallback (non-RPC, small race risk)
         const { data: quota, error: qErr } = await supabaseAdmin
             .from('app_quotas')
             .select('*')
@@ -132,8 +132,8 @@ router.post('/consume', async (req, res) => {
         if (qErr) throw qErr;
 
         if (!quota) {
-            // If quota row is missing, create a default one (Free by default)
-            const DEFAULT_CAP = 1;
+            // First-time user: create Free quota with 3 total and consume 1
+            const DEFAULT_CAP = 3;
             const { data: inserted, error: insErr } = await supabaseAdmin
                 .from('app_quotas')
                 .insert({ user_id: userId, total_credits: DEFAULT_CAP, used_credits: 1 })
@@ -144,8 +144,33 @@ router.post('/consume', async (req, res) => {
             return res.json({ remaining });
         }
 
-        const total = quota.total_credits || 0;
-        const used = quota.used_credits || 0;
+        // 2a) Self-heal total_credits to match plan: Pro(25) else Free(3)
+        const { data: subRow } = await supabaseAdmin
+            .from('app_subscriptions')
+            .select('status')
+            .eq('user_id', userId)
+            .in('status', ['active', 'trialing', 'past_due', 'unpaid'])
+            .maybeSingle();
+
+        const desiredCap = subRow ? 25 : 3;
+        let total = quota.total_credits || 0;
+        let used = quota.used_credits || 0;
+
+        if (total !== desiredCap) {
+            const { data: fixed, error: fixErr } = await supabaseAdmin
+                .from('app_quotas')
+                .update({ total_credits: desiredCap, updated_at: new Date().toISOString() })
+                .eq('user_id', userId)
+                .select()
+                .maybeSingle();
+            if (!fixErr && fixed) {
+                total = fixed.total_credits || desiredCap;
+                used = fixed.used_credits || used;
+            } else {
+                total = desiredCap; // fall back
+            }
+        }
+
         if (used >= total) {
             return res.status(409).json({ error: 'No credits remaining', remaining: 0 });
         }
@@ -165,5 +190,6 @@ router.post('/consume', async (req, res) => {
         res.status(500).json({ error: e.message || 'Failed to consume credit' });
     }
 });
+
 
 module.exports = router;
