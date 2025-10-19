@@ -13,6 +13,15 @@ router.get('/summary/:userId', async (req, res) => {
         const userId = req.params.userId;
         console.log(`[account.summary] Fetching summary for userId: ${userId}`);
 
+        // --- NEW: check admin first
+        let isAdmin = false;
+        try {
+            const { data: isAdminData, error: isAdminErr } = await supabaseAdmin.rpc('is_admin', { p_user_id: userId });
+            if (!isAdminErr && isAdminData === true) isAdmin = true;
+        } catch (e) {
+            console.warn('[account.summary] is_admin RPC failed:', e?.message || e);
+        }
+
         // Latest subscription (optional)
         const { data: subs, error: subErr } = await supabaseAdmin
             .from('app_subscriptions')
@@ -35,7 +44,8 @@ router.get('/summary/:userId', async (req, res) => {
         const sub = subs?.[0] || null;
 
         // Compute remaining credits (server truth)
-        const remaining = quota ? Math.max(0, (quota.total_credits || 0) - (quota.used_credits || 0)) : 0;
+        // For admins, we will override to null (∞) below.
+        let remaining = quota ? Math.max(0, (quota.total_credits || 0) - (quota.used_credits || 0)) : 0;
 
         // Enrich summary with price + cancel flag where possible
         let price = null; // { amount, currency, interval }
@@ -76,6 +86,11 @@ router.get('/summary/:userId', async (req, res) => {
             console.warn('[account.summary] Price/Stripe lookup failed:', e?.message || e);
         }
 
+        // --- NEW: for admins, remaining = null and unlimited = true
+        if (isAdmin) {
+            remaining = null;
+        }
+
         const response = {
             status: sub?.status || 'none',
             renewalDate,
@@ -83,6 +98,9 @@ router.get('/summary/:userId', async (req, res) => {
             freeTryUsed: !!quota?.has_claimed_free_try,
             cancelAtPeriodEnd,
             price, // { amount (minor units), currency, interval } or null
+            // NEW fields for clarity in UI/clients:
+            unlimited: isAdmin,
+            isAdmin,
         };
 
         console.log('[account.summary] Response:', response);
@@ -97,12 +115,23 @@ router.get('/summary/:userId', async (req, res) => {
  * POST /api/account/consume
  * Body: { userId }
  * Decrements credits by 1 (server truth). Never goes below zero.
- * Returns: { remaining }
+ * Returns: { remaining, unlimited? }
  */
 router.post('/consume', async (req, res) => {
     try {
         const { userId } = req.body || {};
         if (!userId) return res.status(400).json({ error: 'Missing userId' });
+
+        // --- NEW: Admin short-circuit: unlimited credits, don't decrement
+        try {
+            const { data: isAdmin, error: adminErr } = await supabaseAdmin.rpc('is_admin', { p_user_id: userId });
+            if (!adminErr && isAdmin === true) {
+                return res.json({ remaining: null, unlimited: true });
+            }
+        } catch (e) {
+            console.warn('[account.consume] is_admin RPC failed:', e?.message || e);
+            // non-fatal: fall through to normal flow
+        }
 
         // 1) Try RPC first (atomic decrement in DB)
         let rpcTried = false;
@@ -190,6 +219,5 @@ router.post('/consume', async (req, res) => {
         res.status(500).json({ error: e.message || 'Failed to consume credit' });
     }
 });
-
 
 module.exports = router;

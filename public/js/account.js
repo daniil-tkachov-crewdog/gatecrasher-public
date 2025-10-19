@@ -306,9 +306,16 @@ const num = (v, d = 0) => {
 };
 
 function normalizeSummary(s) {
+    // 🔓 Detect admin/unlimited from backend response
+    const unlimited =
+        s?.unlimited === true ||
+        s?.isAdmin === true ||
+        s?.creditsRemaining === null;
+
     const status = s?.status || "none";
     const pro = ["active", "trialing", "past_due", "unpaid"].includes(String(status).toLowerCase());
 
+    // Try to read totals if your API provides them; otherwise infer from remaining
     const capCandidates = [s?.searchCap, s?.cap, s?.searches?.cap, s?.quota?.cap, pro ? PRO_CAP : FREE_CAP];
     const cap = capCandidates.map((v) => num(v, NaN)).find((v) => Number.isFinite(v));
 
@@ -324,15 +331,15 @@ function normalizeSummary(s) {
         remaining = Math.max(0, cap - used);
     }
 
-    const finalCap = Number.isFinite(cap) ? cap : pro ? PRO_CAP : FREE_CAP;
+    const finalCap = Number.isFinite(cap) ? cap : (pro ? PRO_CAP : FREE_CAP);
     let finalUsed = Math.max(0, num(used, 0));
-    let finalRemaining = Math.max(0, Number.isFinite(remaining) ? remaining : Math.max(0, finalCap - finalUsed));
+    let finalRemaining = unlimited ? null : Math.max(0, Number.isFinite(remaining) ? remaining : Math.max(0, finalCap - finalUsed));
 
-    // FIX: new user on Free plan but backend returns creditsRemaining=0 while freeTryUsed=false
+    // Keep your existing free-try heuristic
     const freeTryUsed = s?.freeTryUsed ?? s?.has_claimed_free_try;
-    if (!pro && freeTryUsed === false) {
+    if (!unlimited && !pro && freeTryUsed === false) {
         finalUsed = 0;
-        finalRemaining = FREE_CAP; // give full free allowance
+        finalRemaining = FREE_CAP;
     }
 
     return {
@@ -342,8 +349,10 @@ function normalizeSummary(s) {
         used: finalUsed,
         remaining: finalRemaining,
         renewalDate: s?.renewalDate || s?.renewal || null,
+        unlimited, // 👈 NEW flag
     };
 }
+
 
 function setQuota(used, total) {
     const pct = total > 0 ? clamp((used / total) * 100, 0, 100) : 0;
@@ -392,8 +401,43 @@ async function renewNowImmediate({ userId }) {
 
 /* --------------------------- Updated renderSummary --------------------------- */
 function renderSummary(raw) {
-    const { pro, cap, used, renewalDate } = normalizeSummary(raw);
+    const { pro, cap, used, renewalDate, unlimited } = normalizeSummary(raw);
 
+    // 🔓 Admins: show Unlimited and skip the rest of the Pro/Free logic
+    if (unlimited) {
+        // Quota strip
+        setText("quotaText", "Unlimited searches");
+        const fill = document.getElementById("quotaFill");
+        if (fill) requestAnimationFrame(() => { fill.style.width = "100%"; });
+
+        // Plan callout + price text (badge/labels)
+        const planBadge = document.getElementById("planBadge");
+        const planNameEl = document.getElementById("planName");
+        const planHelpEl = document.getElementById("planHelp");
+        if (planBadge) planBadge.setAttribute("data-status", "pro");
+        if (planNameEl) planNameEl.textContent = "Admin";
+        if (planHelpEl) planHelpEl.innerHTML = `You have <strong>unlimited</strong> searches (admin).`;
+
+        // Subscription pill / status
+        const statusText = document.getElementById("subStatus");
+        const subPill = document.getElementById("subPill");
+        if (subPill) subPill.setAttribute("data-status", "pro");
+        if (statusText) statusText.textContent = "Admin — Unlimited";
+
+        // Renewal not applicable
+        setShown("renewalWrap", false);
+        setText("renewalDate", "—");
+
+        // Hide upgrade; disable cancel
+        const upgrade = document.getElementById("upgradeBtn");
+        if (upgrade) upgrade.style.display = "none";
+        const cancel = document.getElementById("cancelBtn");
+        if (cancel) { cancel.disabled = true; cancel.title = "Admins do not have a subscription to cancel"; }
+
+        return; // ✅ done rendering for admins
+    }
+
+    // ===== Non-admin path (unchanged behavior) =====
     setQuota(Math.min(used, cap), cap);
 
     // Status pill + text (show "cancels on" if cancelAtPeriodEnd is true)
@@ -505,7 +549,6 @@ function renderSummary(raw) {
                             return;
                         }
                     }
-
 
                     await refreshSummary();
                     bindCancelBasedOnStatus(); // keep Cancel in sync

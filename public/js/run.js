@@ -96,6 +96,12 @@ async function fetchSummary(userId) {
 
 /* ---------- Normalize ---------- */
 function normalizeSummary(s) {
+    // 🔓 Detect admin/unlimited from backend
+    const unlimited =
+        s?.unlimited === true ||
+        s?.isAdmin === true ||
+        s?.creditsRemaining === null;
+
     const status = s?.status || "none";
     const pro = ["active", "trialing", "past_due", "unpaid"].includes(String(status).toLowerCase());
 
@@ -112,10 +118,13 @@ function normalizeSummary(s) {
 
     const finalCap = Number.isFinite(cap) ? cap : (pro ? PRO_CAP : FREE_CAP);
     let finalUsed = Math.max(0, num(used, 0));
-    let finalRemaining = Math.max(0, Number.isFinite(remaining) ? remaining : Math.max(0, finalCap - finalUsed));
+    let finalRemaining = unlimited
+        ? null                          // 👈 admins show ∞
+        : Math.max(0, Number.isFinite(remaining) ? remaining : Math.max(0, finalCap - finalUsed));
 
+    // Free-try heuristic (skip for admins)
     const freeTryUsed = s?.freeTryUsed ?? s?.has_claimed_free_try;
-    if (!pro && freeTryUsed === false) {
+    if (!unlimited && !pro && freeTryUsed === false) {
         finalUsed = 0;
         finalRemaining = FREE_CAP;
     }
@@ -125,10 +134,12 @@ function normalizeSummary(s) {
         pro,
         cap: finalCap,
         used: Math.min(finalUsed, finalCap),
-        remaining: Math.min(finalRemaining, finalCap),
+        remaining: finalRemaining === null ? null : Math.min(finalRemaining, finalCap),
         renewalDate: s?.renewalDate || s?.renewal || null,
+        unlimited, // 👈 NEW flag
     };
 }
+
 
 /* ---------- Local fallback quota ---------- */
 const LS_Q = "xrl-quota";
@@ -155,6 +166,8 @@ function resetLocalIfServerHigher(userId, periodEnd, serverUsed) {
 }
 function applyLocalOverlay(s, userId) {
     if (!userId) return s;
+    if (s.unlimited) return s; // 👈 admins: do not fudge numbers locally
+
     const localUsed = getLocalUsed(userId, s.renewalDate);
     if (localUsed > s.used) {
         const used = Math.min(localUsed, s.cap);
@@ -163,6 +176,7 @@ function applyLocalOverlay(s, userId) {
     resetLocalIfServerHigher(userId, s.renewalDate, s.used);
     return s;
 }
+
 
 /* ---------- Billing helpers ---------- */
 async function openBillingPortal({ userId, email }) {
@@ -198,6 +212,26 @@ function renderNormalizedSummary(s, rawRenewal) {
     const upgradeLink = byId("upgradeLink");
     const submitBtn = byId("submitBtn");
 
+    // 🔓 Admins: Unlimited — special UI & always enabled
+    if (s.unlimited) {
+        if (pill) pill.setAttribute("data-status", "pro");
+        if (planTxt) planTxt.textContent = "Admin";
+        if (quotaTxt) quotaTxt.textContent = "Unlimited searches";
+        if (renewalTxt) setText(renewalTxt, "");
+
+        if (upgradeLink) {
+            upgradeLink.onclick = null;
+            setShown(upgradeLink, false);
+        }
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Run Search";
+            submitBtn.removeAttribute("title");
+        }
+        return; // ✅ done for admins
+    }
+
+    // ----- Non-admin path (existing behavior) -----
     if (pill) pill.setAttribute("data-status", s.pro ? "pro" : "free");
     if (planTxt) planTxt.textContent = s.pro ? "Pro" : "Free";
     if (quotaTxt) quotaTxt.textContent = `${s.used} / ${s.cap} searches`;
@@ -205,13 +239,11 @@ function renderNormalizedSummary(s, rawRenewal) {
 
     // --- CTA logic: Upgrade vs Renew-now vs Hidden ---
     if (upgradeLink) {
-        // clear prior bindings/hrefs to avoid stacking
         upgradeLink.onclick = null;
         upgradeLink.removeAttribute("disabled");
         upgradeLink.removeAttribute("href");
 
         if (!s.pro) {
-            // Free → Stripe Checkout (same as account.js)
             upgradeLink.textContent = "Upgrade";
             setShown(upgradeLink, true);
             upgradeLink.onclick = async (e) => {
@@ -228,20 +260,16 @@ function renderNormalizedSummary(s, rawRenewal) {
                         credentials: "include",
                         body: JSON.stringify({ userId, email }),
                     });
-
                     const { url } = await res.json();
                     if (!res.ok || !url) throw new Error("Failed to start checkout");
-                    window.location.href = url; // ✅ go to Stripe Checkout
+                    window.location.href = url;
                 } catch (err) {
                     showBanner(err?.message || "Unable to start checkout.", "error");
                     upgradeLink.textContent = "Upgrade";
                     upgradeLink.removeAttribute("disabled");
                 }
             };
-        }
-
-        else if (s.remaining <= 0) {
-            // Pro & out of credits → Renew now (immediate cycle reset via backend)
+        } else if (s.remaining <= 0) {
             upgradeLink.textContent = "Renew now";
             setShown(upgradeLink, true);
             upgradeLink.onclick = async (e) => {
@@ -254,30 +282,23 @@ function renderNormalizedSummary(s, rawRenewal) {
 
                     const resp = await renewNowImmediate({ userId });
 
-                    // If SCA is required (rare in test), guide the user
                     if (resp?.payment_intent_status === "requires_action" && resp?.client_secret) {
                         try {
-                            // load Stripe.js (publishable key should come from a config)
                             const stripe = window.Stripe?.(window.STRIPE_PUBLISHABLE_KEY);
                             if (!stripe) throw new Error("Stripe.js not loaded");
-
                             const { error, paymentIntent } = await stripe.confirmCardPayment(resp.client_secret);
                             if (error) throw error;
-
                             if (paymentIntent?.status === "succeeded") {
-                                // paid → webhook will reset credits (and your backend also handles the immediate-paid path)
                                 showBanner("Payment confirmed. Resetting your credits…", "success");
                             } else {
                                 showBanner("Payment not completed. Please try again.", "error");
                             }
-                        } catch (e) {
-                            showBanner(e?.message || "Payment authentication failed.", "error");
-                            return; // stop here; don’t claim success
+                        } catch (e2) {
+                            showBanner(e2?.message || "Payment authentication failed.", "error");
+                            return;
                         }
                     }
 
-
-                    // Refresh UI; webhook or immediate-paid path will have reset credits
                     await refreshSummaryAndUI();
                     showBanner("Your cycle was reset. You now have fresh credits.", "success");
                 } catch (err) {
@@ -288,7 +309,6 @@ function renderNormalizedSummary(s, rawRenewal) {
                 }
             };
         } else {
-            // Pro & has credits → hide CTA
             setShown(upgradeLink, false);
         }
     }
@@ -297,11 +317,9 @@ function renderNormalizedSummary(s, rawRenewal) {
         if (s.remaining <= 0) {
             submitBtn.disabled = true;
             submitBtn.textContent = s.pro ? "Out of credits" : "Upgrade to run";
-            // (Optional tiny tooltip for clarity)
             submitBtn.title = s.pro
                 ? "You’ve used all 25 searches. Click ‘Renew now’ to reset immediately."
                 : `Free plan includes ${FREE_CAP} ${FREE_CAP === 1 ? "search" : "searches"}/month. Upgrade for more.`;
-
         } else if (!inFlight) {
             submitBtn.disabled = false;
             submitBtn.textContent = "Run Search";
@@ -309,6 +327,7 @@ function renderNormalizedSummary(s, rawRenewal) {
         }
     }
 }
+
 
 
 /* Pull server → normalize → overlay local → render */
@@ -614,6 +633,7 @@ function watchResults() {
 }
 
 /* Guard before submit: block if out of credits; optimistic local decrement */
+/* Guard before submit: block if out of credits; optimistic local decrement */
 async function onSubmitGuard(e) {
     clearBanner();
 
@@ -625,6 +645,23 @@ async function onSubmitGuard(e) {
     }
     let { userId, s } = data;
 
+    // 🔓 Admins: never block, and don't bump local counters
+    if (s.unlimited) {
+        const submitBtn = byId("submitBtn");
+        if (submitBtn) {
+            inFlight = true;
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Running…";
+        }
+        __historyLogged = false;
+        // let the form submit normally
+        setTimeout(refreshSummaryAndUI, 1500);
+        setTimeout(refreshSummaryAndUI, 6000);
+        setTimeout(refreshSummaryAndUI, 15000);
+        return;
+    }
+
+    // Block if out of credits
     if (s.remaining <= 0) {
         e.preventDefault();
         e.stopPropagation();
@@ -636,15 +673,13 @@ async function onSubmitGuard(e) {
         );
         const link = byId("upgradeLink");
         if (link) {
-            // Nudge CTA text appropriately
             if (s.pro) link.textContent = "Renew now";
             link.focus();
         }
         return;
     }
 
-
-    // Optimistic local decrement immediately
+    // Optimistic local decrement (non-admin only)
     bumpLocalUsed(userId, s.renewalDate, s.cap, 1);
     s = applyLocalOverlay(s, userId);
     renderNormalizedSummary(s, s.renewalDate);
@@ -657,13 +692,13 @@ async function onSubmitGuard(e) {
         submitBtn.textContent = "Running…";
     }
 
-    // reset log-once flag for this fresh run
     __historyLogged = false;
 
     setTimeout(refreshSummaryAndUI, 1500);
     setTimeout(refreshSummaryAndUI, 6000);
     setTimeout(refreshSummaryAndUI, 15000);
 }
+
 
 /* =========================
    Boot
