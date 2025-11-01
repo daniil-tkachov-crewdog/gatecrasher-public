@@ -7,12 +7,10 @@ const xss = require('xss-clean');
 function buildCsp() {
     const isProd = process.env.NODE_ENV === 'production';
 
-    // ---- External endpoints (from env, with safe fallbacks) ----
     const SUPABASE_URL = process.env.SUPABASE_URL || '';
     let supabaseHost = '';
     try { supabaseHost = new URL(SUPABASE_URL).host; } catch (_) { }
 
-    // accept either var name
     const N8N_ENDPOINT =
         process.env.N8N_ENDPOINT ||
         process.env.N8N_ENDPOINT_URL ||
@@ -61,11 +59,10 @@ function buildCsp() {
             "https://www.googletagmanager.com"
         ],
 
-        // XHR/fetch/WebSockets
         "connect-src": [
             "'self'",
-            SUPABASE_URL,                                   // Supabase REST
-            supabaseHost ? `wss://${supabaseHost}` : null,  // Supabase Realtime
+            SUPABASE_URL,
+            supabaseHost ? `wss://${supabaseHost}` : null,
             "https://api.stripe.com",
             "https://js.stripe.com",
             "https://www.googletagmanager.com",
@@ -74,9 +71,7 @@ function buildCsp() {
             n8nOrigin
         ].filter(Boolean),
 
-        // Allow POSTs to n8n as a fallback
         "form-action": ["'self'", n8nOrigin],
-
         "worker-src": ["'self'", "blob:"],
         "object-src": ["'none'"],
         "base-uri": ["'self'"]
@@ -94,38 +89,52 @@ function buildCsp() {
 function applySecurity(app) {
     app.disable('x-powered-by');
 
-    // Your production origin
-    const PROD_ORIGIN =
-        process.env.APP_BASE_URL ||
-        process.env.APP_ORIGIN ||
-        'https://crewdog.app';
+    // Allowed origins
+    const RAW_CORS = process.env.CORS_ORIGINS || [
+        'https://www.crewdog.app',
+        'https://crewdog.app',
+        'https://crewdog-frontend.onrender.com', // temporary during transition
+        'http://localhost:5173',
+        'http://localhost:8080'
+    ].join(',');
 
-    // Single CORS middleware (no duplicates)
-    const allowedOrigins = [
-        PROD_ORIGIN,             // https://crewdog.app
-        'http://localhost:3000'  // dev
-    ].filter(Boolean);
+    const allowedOrigins = RAW_CORS.split(',').map(s => s.trim()).filter(Boolean);
 
     app.use(cors({
-        origin: allowedOrigins,
-        credentials: false // set true only if you're using cookies/Authorization headers cross-site
+        origin(origin, cb) {
+            // allow no-origin (curl, Postman, health checks)
+            if (!origin) return cb(null, true);
+            if (allowedOrigins.includes(origin)) return cb(null, true);
+            return cb(new Error(`CORS blocked: ${origin}`));
+        },
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+        allowedHeaders: [
+            'Content-Type',
+            'Authorization',
+            'X-Requested-With',
+            'X-Tenant-Id',
+            'X-Admin-Key'
+        ],
+        maxAge: 600
     }));
 
-    // Helmet with CSP
+    // Preflight support
+    app.options('*', cors());
+
     app.use(helmet({
         contentSecurityPolicy: buildCsp(),
         referrerPolicy: { policy: 'no-referrer' },
         crossOriginResourcePolicy: { policy: 'same-site' },
-        crossOriginEmbedderPolicy: false // avoid COEP issues with CDN assets
+        crossOriginEmbedderPolicy: false
     }));
 
-    // XSS: skip ONLY for Stripe raw-body route
+    // Skip XSS clean for Stripe webhook
     app.use((req, res, next) => {
         if (req.originalUrl === '/api/stripe/webhook') return next();
         return xss()(req, res, next);
     });
 
-    // Basic rate limit
     app.use(rateLimit({
         windowMs: 15 * 60 * 1000,
         max: 300,
