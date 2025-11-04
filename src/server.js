@@ -16,8 +16,12 @@ const app = express();
 /* Trust proxy headers (needed for correct IPs/rate-limit behind Cloudflare/Traefik) */
 app.set('trust proxy', 1);
 
-/* 1) Give Stripe webhook a raw body BEFORE any JSON parsing */
+/* 1) Give Stripe webhook a raw body BEFORE any JSON parsing
+      - Live:  /api/stripe/webhook
+      - Test:  /api/stripe/webhook-test
+*/
 app.use('/api/stripe/webhook', express.raw({ type: '*/*' }));
+app.use('/api/stripe/webhook-test', express.raw({ type: '*/*' }));
 
 /* 2) Security middlewares (Helmet, CORS, rate limit, xss-clean, etc.) */
 applySecurity(app);
@@ -25,10 +29,13 @@ applySecurity(app);
 /* 3) Static files (local dev only; in prod you likely serve via CDN/static host) */
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
-/* 4) Parse JSON for all requests EXCEPT the Stripe webhook */
+/* 4) Parse JSON for all requests EXCEPT the Stripe webhooks */
 app.use((req, res, next) => {
-  if (req.originalUrl === '/api/stripe/webhook') return next();
-  return express.json()(req, res, next);
+  // Skip JSON body parsing for Stripe webhook endpoints because Stripe requires the raw body
+  if (req.originalUrl === '/api/stripe/webhook' || req.originalUrl === '/api/stripe/webhook-test') {
+    return next();
+  }
+  return express.json({ limit: '1mb' })(req, res, next);
 });
 
 /* 5) Health check */

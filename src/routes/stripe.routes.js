@@ -19,7 +19,15 @@ const PRICE_ID = must('STRIPE_PRICE_ID'); // main Pro plan
 const PRICE_ID_2GBP = process.env.STRIPE_PRICE_ID_2GBP || null;
 const APP_BASE_URL = must('APP_BASE_URL');
 const ADMIN_API_KEY = must('ADMIN_API_KEY');
-const STRIPE_WEBHOOK_SECRET = must('STRIPE_WEBHOOK_SECRET').trim();
+
+// NEW: separate webhook secrets with fallback to legacy var
+const STRIPE_WEBHOOK_SECRET_LIVE =
+    (process.env.STRIPE_WEBHOOK_SECRET_LIVE || process.env.STRIPE_WEBHOOK_SECRET || '').trim();
+const STRIPE_WEBHOOK_SECRET_TEST = (process.env.STRIPE_WEBHOOK_SECRET_TEST || '').trim();
+
+if (!STRIPE_WEBHOOK_SECRET_LIVE) {
+    throw new Error('Missing STRIPE_WEBHOOK_SECRET_LIVE (or STRIPE_WEBHOOK_SECRET)');
+}
 
 /* Optional: explicit portal configuration id (bpc_...), not required */
 const STRIPE_BILLING_PORTAL_CONFIGURATION_ID =
@@ -84,6 +92,22 @@ async function getActiveSubRowForUser(userId) {
     return row || null;
 }
 
+/* ----------------------------- NEW: Safe Stripe fetches ----------------------------- */
+async function getSubscriptionSafe(subId) {
+    try {
+        return await stripe.subscriptions.retrieve(subId);
+    } catch (e) {
+        const msg = e?.raw?.message || '';
+        if (e?.statusCode === 404 && /exists in test mode/i.test(msg)) {
+            // stale TEST id saved in prod – log + allow caller to treat as null
+            console.warn(`[stripe] stale TEST subscription id in live context: ${subId}`);
+            // If you map subId -> user, you could also clear it here.
+            return null;
+        }
+        throw e;
+    }
+}
+
 /* ----------------------------- ROUTES: Checkout ----------------------------- */
 /** POST /api/stripe/create-checkout-session */
 router.post('/create-checkout-session', express.json(), async (req, res) => {
@@ -131,6 +155,7 @@ router.post('/create-checkout-session', express.json(), async (req, res) => {
                 cancel_url: `${APP_BASE_URL}/account`,
                 client_reference_id: userId,
                 metadata: { user_id: userId },
+                payment_method_types: ['card', 'link'],
             },
             { idempotencyKey }
         );
@@ -142,7 +167,7 @@ router.post('/create-checkout-session', express.json(), async (req, res) => {
     }
 });
 
-/* ============================ NEW: Billing Portal ============================ */
+/* ============================ Billing Portal ============================ */
 /** POST /api/stripe/portal
  * Body: { userId: uuid, email: string }
  * Returns: { url }
@@ -184,24 +209,30 @@ router.post('/portal', express.json(), async (req, res) => {
     }
 });
 
-/* ------------------------------ ROUTES: Webhook ------------------------------ */
-/** POST /api/stripe/webhook */
-// Use raw body to validate signature
-
+/* ------------------------------ ROUTES: Webhook (LIVE) ------------------------------ */
+/** POST /api/stripe/webhook
+ * NOTE: raw body is already applied in server.js; we keep this here too for safety with your current setup.
+ */
 router.post('/webhook', express.raw({ type: '*/*' }), async (req, res) => {
     const sig = req.headers['stripe-signature'];
     if (!sig) return res.status(400).json({ error: 'Missing signature' });
 
     let event;
     try {
-        event = stripe.webhooks.constructEvent(req.body, sig, STRIPE_WEBHOOK_SECRET);
+        event = stripe.webhooks.constructEvent(req.body, sig, STRIPE_WEBHOOK_SECRET_LIVE);
     } catch (err) {
-        console.error('[stripe] webhook signature failed:', err.message);
+        console.error('[stripe] LIVE webhook signature failed:', err.message);
         return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
     try {
-        console.log('[stripe] WH event:', event.type);
+        // ✅ Only trust/live-mutate on live events
+        if (event.livemode !== true) {
+            console.warn('[stripe] LIVE endpoint received non-live event; ignoring:', event.type);
+            return res.json({ received: true });
+        }
+
+        console.log('[stripe] WH (LIVE) event:', event.type);
 
         switch (event.type) {
             case 'checkout.session.completed': {
@@ -212,7 +243,9 @@ router.post('/webhook', express.raw({ type: '*/*' }), async (req, res) => {
                 const userId = await findUserIdByCustomerId(customerId);
                 console.log('[stripe] WH checkout.session.completed -> userId:', userId, 'subId:', subId);
                 if (!userId || !subId) break;
-                const sub = await stripe.subscriptions.retrieve(subId);
+
+                const sub = await getSubscriptionSafe(subId);
+                if (!sub) break; // stale TEST id; do nothing
                 await upsertSubscription(userId, sub);
                 break;
             }
@@ -222,7 +255,8 @@ router.post('/webhook', express.raw({ type: '*/*' }), async (req, res) => {
                 console.log('[stripe] WH invoice.payment_succeeded invoice_id:', invoice.id, 'billing_reason:', invoice.billing_reason);
                 if (!invoice.subscription) break;
 
-                const sub = await stripe.subscriptions.retrieve(invoice.subscription);
+                const sub = await getSubscriptionSafe(invoice.subscription);
+                if (!sub) break;
                 const userId = await findUserIdByCustomerId(sub.customer);
                 console.log('[stripe] WH payment_succeeded -> userId:', userId, 'subId:', sub.id);
                 if (!userId) break;
@@ -259,7 +293,9 @@ router.post('/webhook', express.raw({ type: '*/*' }), async (req, res) => {
                 const invoice = event.data.object;
                 console.log('[stripe] WH invoice.payment_failed invoice_id:', invoice.id);
                 if (!invoice.subscription) break;
-                const sub = await stripe.subscriptions.retrieve(invoice.subscription);
+
+                const sub = await getSubscriptionSafe(invoice.subscription);
+                if (!sub) break;
                 const userId = await findUserIdByCustomerId(sub.customer);
                 if (!userId) break;
                 await upsertSubscription(userId, sub); // likely past_due
@@ -289,8 +325,41 @@ router.post('/webhook', express.raw({ type: '*/*' }), async (req, res) => {
 
         return res.json({ received: true });
     } catch (e) {
-        console.error('[stripe] webhook error', e);
+        console.error('[stripe] webhook (LIVE) error', e);
+        // If your processing is idempotent and logged, you may still return 200 to avoid infinite retries.
         return res.status(500).json({ error: 'Webhook processing failed' });
+    }
+});
+
+/* ------------------------------ NEW: Webhook (TEST) ------------------------------ */
+/** POST /api/stripe/webhook-test
+ * We verify with the TEST secret and DO NOT mutate prod DB.
+ */
+router.post('/webhook-test', express.raw({ type: '*/*' }), async (req, res) => {
+    if (!STRIPE_WEBHOOK_SECRET_TEST) {
+        // If you didn't configure a test secret yet, let the caller know.
+        console.warn('[stripe] TEST webhook received but STRIPE_WEBHOOK_SECRET_TEST is not set');
+        return res.status(400).send('Test webhook not configured');
+    }
+
+    const sig = req.headers['stripe-signature'];
+    if (!sig) return res.status(400).json({ error: 'Missing signature' });
+
+    let event;
+    try {
+        event = stripe.webhooks.constructEvent(req.body, sig, STRIPE_WEBHOOK_SECRET_TEST);
+    } catch (err) {
+        console.error('[stripe] TEST webhook signature failed:', err.message);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    try {
+        console.log('[stripe] WH (TEST) event:', event.type);
+        // Intentionally do nothing that touches prod DB.
+        return res.status(200).send('[ok]');
+    } catch (e) {
+        console.error('[stripe] webhook (TEST) error', e);
+        return res.status(200).send('[logged]');
     }
 });
 
@@ -329,7 +398,7 @@ router.post('/admin/cancel', express.json(), async (req, res) => {
     }
 });
 
-/* ========================== NEW: Customer cancel flow ========================== */
+/* ========================== Customer cancel flow ========================== */
 /** POST /api/stripe/cancel/feedback
  * Body: { userId: uuid, reason: string, otherText?: string }
  */
@@ -381,7 +450,10 @@ router.post('/downgrade', express.json(), async (req, res) => {
         }
 
         // Retrieve subscription to get item id
-        const sub = await stripe.subscriptions.retrieve(subRow.stripe_subscription_id);
+        const sub = await getSubscriptionSafe(subRow.stripe_subscription_id);
+        if (!sub) {
+            return res.status(400).json({ error: 'Subscription not found (stale test id in live?)' });
+        }
         const subItem = sub.items?.data?.[0];
         if (!subItem?.id) throw new Error('Subscription item not found');
 
@@ -422,7 +494,12 @@ router.post('/cancel', express.json(), async (req, res) => {
             return res.status(404).json({ error: 'No active subscription' });
         }
 
-        const canceled = await stripe.subscriptions.update(subRow.stripe_subscription_id, {
+        const current = await getSubscriptionSafe(subRow.stripe_subscription_id);
+        if (!current) {
+            return res.status(400).json({ error: 'Subscription not found (stale test id in live?)' });
+        }
+
+        const canceled = await stripe.subscriptions.update(current.id, {
             cancel_at_period_end: true,
         });
 
@@ -435,7 +512,7 @@ router.post('/cancel', express.json(), async (req, res) => {
     }
 });
 
-/* ============================ NEW: Renew-now API ============================ */
+/* ============================ Renew-now API ============================ */
 /** POST /api/stripe/renew-now
  * Body: { userId: uuid }
  * Forces a new billing cycle to start NOW (no proration). If the invoice is
@@ -452,7 +529,10 @@ router.post('/renew-now', express.json(), async (req, res) => {
         }
 
         // Retrieve subscription (expand latest invoice & payment intent on update)
-        const current = await stripe.subscriptions.retrieve(subRow.stripe_subscription_id);
+        const current = await getSubscriptionSafe(subRow.stripe_subscription_id);
+        if (!current) {
+            return res.status(400).json({ error: 'Subscription not found (stale test id in live?)' });
+        }
 
         const updated = await stripe.subscriptions.update(current.id, {
             cancel_at_period_end: false,

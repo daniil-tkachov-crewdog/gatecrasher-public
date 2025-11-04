@@ -31,8 +31,10 @@ Thumbs.db
 
 # Environment variables
 .env
+.env*
 .env.local
-
+.env.development
+.env.production
 
 # Editor/IDE files
 .vscode/
