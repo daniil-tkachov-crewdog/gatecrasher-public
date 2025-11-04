@@ -127,8 +127,8 @@ router.post('/create-checkout-session', express.json(), async (req, res) => {
                 customer: customerId,
                 line_items: [{ price: PRICE_ID, quantity: 1 }],
                 allow_promotion_codes: true,
-                success_url: `${APP_BASE_URL}/success.html?session_id={CHECKOUT_SESSION_ID}`,
-                cancel_url: `${APP_BASE_URL}/cancel.html`,
+                success_url: `${APP_BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
+                cancel_url: `${APP_BASE_URL}/account`,
                 client_reference_id: userId,
                 metadata: { user_id: userId },
             },
@@ -173,7 +173,7 @@ router.post('/portal', express.json(), async (req, res) => {
 
         const session = await stripe.billingPortal.sessions.create({
             customer: customerId,
-            return_url: `${APP_BASE_URL}/account.html`,
+            return_url: `${APP_BASE_URL}/account`,
             ...(STRIPE_BILLING_PORTAL_CONFIGURATION_ID ? { configuration: STRIPE_BILLING_PORTAL_CONFIGURATION_ID } : {}),
         });
 
