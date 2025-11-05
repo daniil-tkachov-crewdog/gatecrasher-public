@@ -1,8 +1,25 @@
+// routes/account.js (drop-in replacement)
 const express = require('express');
 const router = express.Router();
 const { supabaseAdmin } = require('../lib/supabaseAdmin');
-// Assumes you have a Stripe client export like: module.exports = { stripe }
 const { stripe } = require('../lib/stripe');
+
+/** small helper */
+async function ensureUserAndQuota(userId, email, defaultCap = 3) {
+    try {
+        // email is optional; function tolerates null
+        const { error } = await supabaseAdmin.rpc('ensure_user_and_quota', {
+            uid: userId,
+            uemail: email || null,
+            default_cap: defaultCap,
+        });
+        if (error) {
+            console.warn('[ensure_user_and_quota] RPC error:', error);
+        }
+    } catch (e) {
+        console.warn('[ensure_user_and_quota] RPC threw:', e?.message || e);
+    }
+}
 
 /**
  * GET /api/account/summary/:userId
@@ -11,9 +28,16 @@ const { stripe } = require('../lib/stripe');
 router.get('/summary/:userId', async (req, res) => {
     try {
         const userId = req.params.userId;
+        if (!userId) return res.status(400).json({ error: 'Missing userId' });
         console.log(`[account.summary] Fetching summary for userId: ${userId}`);
 
-        // --- NEW: check admin first
+        // If you can attach email from your auth middleware, pass it; otherwise null
+        const email = (req.user && req.user.email) || req.query.email || null;
+
+        // --- NEW: ensure app_users + app_quotas row exist for current period
+        await ensureUserAndQuota(userId, email, 3);
+
+        // --- Admin check
         let isAdmin = false;
         try {
             const { data: isAdminData, error: isAdminErr } = await supabaseAdmin.rpc('is_admin', { p_user_id: userId });
@@ -31,8 +55,9 @@ router.get('/summary/:userId', async (req, res) => {
             .limit(1);
 
         if (subErr) throw subErr;
+        const sub = subs?.[0] || null;
 
-        // Quota
+        // Quota (now guaranteed to exist after ensureUserAndQuota)
         const { data: quota, error: quotaErr } = await supabaseAdmin
             .from('app_quotas')
             .select('*')
@@ -41,64 +66,56 @@ router.get('/summary/:userId', async (req, res) => {
 
         if (quotaErr) throw quotaErr;
 
-        const sub = subs?.[0] || null;
-
         // Compute remaining credits (server truth)
-        // For admins, we will override to null (∞) below.
-        let remaining = quota ? Math.max(0, (quota.total_credits || 0) - (quota.used_credits || 0)) : 0;
+        let remaining = quota ? Math.max(0, (quota.total_credits || 0) - (quota.used_credits || 0)) : 3;
 
-        // Enrich summary with price + cancel flag where possible
+        // Enrich with Stripe price + cancel flag when possible
         let price = null; // { amount, currency, interval }
         let cancelAtPeriodEnd = !!sub?.cancel_at_period_end;
-        let renewalDate = sub?.current_period_end || null;
+        let renewalDate = sub?.current_period_end || quota?.period_end || null;
 
         try {
-            // Prefer live Stripe subscription (most authoritative)
             if (stripe && sub?.stripe_subscription_id) {
                 const s = await stripe.subscriptions.retrieve(sub.stripe_subscription_id, {
                     expand: ['items.data.price'],
                 });
-
                 cancelAtPeriodEnd = !!s?.cancel_at_period_end;
                 renewalDate = s?.current_period_end ? new Date(s.current_period_end * 1000).toISOString() : renewalDate;
 
                 const pr = s?.items?.data?.[0]?.price;
                 if (pr) {
                     price = {
-                        amount: pr.unit_amount || 0, // minor units; e.g. 200 = £2.00
-                        currency: (pr.currency || 'gbp').toLowerCase(),
+                        amount: pr.unit_amount || 0,
+                        currency: (pr.currency || 'usd').toLowerCase(),
                         interval: pr.recurring?.interval || null,
                     };
                 }
             }
 
-            // Fallback: fetch price via stored price id (if present)
             if (!price && stripe && (sub?.price_id || sub?.stripe_price_id)) {
                 const pr = await stripe.prices.retrieve(sub.price_id || sub.stripe_price_id);
                 price = {
                     amount: pr.unit_amount || 0,
-                    currency: (pr.currency || 'gbp').toLowerCase(),
+                    currency: (pr.currency || 'usd').toLowerCase(),
                     interval: pr.recurring?.interval || null,
                 };
             }
         } catch (e) {
-            // Non-fatal: still return summary without price if Stripe is unavailable
             console.warn('[account.summary] Price/Stripe lookup failed:', e?.message || e);
         }
 
-        // --- NEW: for admins, remaining = null and unlimited = true
+        // Admin: unlimited on server truth too (remaining = null)
         if (isAdmin) {
             remaining = null;
         }
 
         const response = {
             status: sub?.status || 'none',
-            renewalDate,
+            renewalDate: renewalDate ? new Date(renewalDate).toISOString() : null,
             creditsRemaining: remaining,
             freeTryUsed: !!quota?.has_claimed_free_try,
             cancelAtPeriodEnd,
-            price, // { amount (minor units), currency, interval } or null
-            // NEW fields for clarity in UI/clients:
+            price,
             unlimited: isAdmin,
             isAdmin,
         };
@@ -122,7 +139,13 @@ router.post('/consume', async (req, res) => {
         const { userId } = req.body || {};
         if (!userId) return res.status(400).json({ error: 'Missing userId' });
 
-        // --- NEW: Admin short-circuit: unlimited credits, don't decrement
+        // If you can attach email from auth middleware, pass it; else null
+        const email = (req.user && req.user.email) || req.query?.email || null;
+
+        // --- NEW: ensure app_users + app_quotas row exist BEFORE any write
+        await ensureUserAndQuota(userId, email, 3);
+
+        // Admin short-circuit: unlimited (do not decrement)
         try {
             const { data: isAdmin, error: adminErr } = await supabaseAdmin.rpc('is_admin', { p_user_id: userId });
             if (!adminErr && isAdmin === true) {
@@ -130,29 +153,28 @@ router.post('/consume', async (req, res) => {
             }
         } catch (e) {
             console.warn('[account.consume] is_admin RPC failed:', e?.message || e);
-            // non-fatal: fall through to normal flow
+            // fall through
         }
 
-        // 1) Try RPC first (atomic decrement in DB)
-        let rpcTried = false;
-        let rpcData = null, rpcErr = null;
+        // 1) Try atomic decrement RPC (now safe since rows exist)
         try {
-            rpcTried = true;
-            const resRpc = await supabaseAdmin.rpc('app_consume_credit', { p_user_id: userId });
-            rpcData = resRpc.data; rpcErr = resRpc.error;
-        } catch (e) {
-            rpcErr = e;
-        }
-
-        if (rpcTried && !rpcErr && Array.isArray(rpcData)) {
-            if (rpcData.length === 0) {
+            const { data: rpcRows, error: rpcErr } = await supabaseAdmin.rpc('app_consume_credit', { p_user_id: userId });
+            if (!rpcErr) {
+                if (Array.isArray(rpcRows) && rpcRows.length) {
+                    const { total_credits, used_credits } = rpcRows[0] || {};
+                    return res.json({
+                        remaining: Math.max(0, (total_credits || 0) - (used_credits || 0)),
+                    });
+                }
+                // RPC returns empty when no credits
                 return res.status(409).json({ error: 'No credits remaining', remaining: 0 });
             }
-            const { total_credits, used_credits } = rpcData[0] || {};
-            return res.json({ remaining: Math.max(0, (total_credits || 0) - (used_credits || 0)) });
+            console.warn('[account.consume] app_consume_credit RPC error:', rpcErr);
+        } catch (e) {
+            console.warn('[account.consume] app_consume_credit RPC threw:', e?.message || e);
         }
 
-        // 2) Fallback (non-RPC, small race risk)
+        // 2) Fallback path (non-atomic): read → adjust cap → bump used
         const { data: quota, error: qErr } = await supabaseAdmin
             .from('app_quotas')
             .select('*')
@@ -160,8 +182,8 @@ router.post('/consume', async (req, res) => {
             .maybeSingle();
         if (qErr) throw qErr;
 
+        // Should exist after ensureUserAndQuota; still guard just in case
         if (!quota) {
-            // First-time user: create Free quota with 3 total and consume 1
             const DEFAULT_CAP = 3;
             const { data: inserted, error: insErr } = await supabaseAdmin
                 .from('app_quotas')
@@ -173,7 +195,7 @@ router.post('/consume', async (req, res) => {
             return res.json({ remaining });
         }
 
-        // 2a) Self-heal total_credits to match plan: Pro(25) else Free(3)
+        // Self-heal cap based on subscription status
         const { data: subRow } = await supabaseAdmin
             .from('app_subscriptions')
             .select('status')
@@ -196,7 +218,7 @@ router.post('/consume', async (req, res) => {
                 total = fixed.total_credits || desiredCap;
                 used = fixed.used_credits || used;
             } else {
-                total = desiredCap; // fall back
+                total = desiredCap; // fallback
             }
         }
 
