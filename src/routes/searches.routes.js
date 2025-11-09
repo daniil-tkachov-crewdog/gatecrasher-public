@@ -11,20 +11,35 @@ const HRContact = z.object({
     profileUrl: z.string().url().optional().nullable(),
 });
 
-const LogBody = z.object({
-    userId: z.string().uuid(),
-    sourceType: z.enum(["paste", "url", "linkedin"]).optional().default("paste"),
-    sourceUrl: z.string().url().optional().nullable(),
-    includeLeads: z.boolean().optional().default(false),
+// FIX: allow empty jdRaw for non-"paste" sources while keeping it required for "paste"
+const LogBody = z
+    .object({
+        userId: z.string().uuid(),
+        sourceType: z.enum(["paste", "url", "linkedin"]).optional().default("paste"),
+        sourceUrl: z.string().url().optional().nullable(),
+        includeLeads: z.boolean().optional().default(false),
 
-    jdRaw: z.string().min(1).max(100_000), // cap at 100 KB
-    jobTitle: z.string().trim().optional().nullable(),
-    companyName: z.string().trim().optional().nullable(),
-    companyUrl: z.string().url().optional().nullable(),
-    location: z.string().trim().optional().nullable(),
-    whyCompany: z.string().trim().optional().nullable(),
-    hrContacts: z.array(HRContact).optional().default([]),
-});
+        // was: z.string().min(1).max(100_000)
+        // now optional with default "", upper bound kept
+        jdRaw: z.string().max(100_000).optional().default(""),
+
+        jobTitle: z.string().trim().optional().nullable(),
+        companyName: z.string().trim().optional().nullable(),
+        companyUrl: z.string().url().optional().nullable(),
+        location: z.string().trim().optional().nullable(),
+        whyCompany: z.string().trim().optional().nullable(),
+        hrContacts: z.array(HRContact).optional().default([]),
+    })
+    .superRefine((val, ctx) => {
+        // Enforce non-empty jdRaw only when sourceType is "paste"
+        if (val.sourceType === "paste" && (!val.jdRaw || val.jdRaw.trim().length === 0)) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ["jdRaw"],
+                message: "jdRaw is required when sourceType is 'paste'",
+            });
+        }
+    });
 
 /**
  * NOTE: Postgres often returns microsecond timestamps like
@@ -69,7 +84,7 @@ router.post("/log", async (req, res) => {
                 source_url: input.sourceUrl ?? null,
                 include_leads: !!input.includeLeads,
 
-                jd_raw: input.jdRaw,
+                jd_raw: input.jdRaw, // remains same; now safely defaults to ""
                 jd_excerpt: excerpt(input.jdRaw, 500),
 
                 job_title: input.jobTitle ?? null,
