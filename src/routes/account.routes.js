@@ -4,6 +4,34 @@ const router = express.Router();
 const { supabaseAdmin } = require('../lib/supabaseAdmin');
 const { stripe } = require('../lib/stripe');
 
+// Map Stripe price_id -> credits (must match stripe.routes.js)
+const PLAN_CONFIG = {
+    [process.env.STRIPE_PRICE_PLATINUM]: { code: 'platinum', credits: 20 },
+    [process.env.STRIPE_PRICE_SILVER]: { code: 'silver', credits: 60 },
+    [process.env.STRIPE_PRICE_GOLD]: { code: 'gold', credits: 200 },
+    [process.env.STRIPE_PRICE_BUSINESS]: { code: 'business', credits: 1000 },
+    [process.env.STRIPE_PRICE_RETENTION]: { code: 'retention', credits: 10 },
+};
+
+// Optional: legacy support for old archived prices (25 credits)
+if (process.env.STRIPE_PRICE_ID) {
+    PLAN_CONFIG[process.env.STRIPE_PRICE_ID] = { code: 'legacy_pro', credits: 25 };
+}
+if (process.env.STRIPE_PRICE_ID_2GBP) {
+    PLAN_CONFIG[process.env.STRIPE_PRICE_ID_2GBP] = { code: 'legacy_downsell', credits: 25 };
+}
+
+function getPlanForPriceId(priceId) {
+    if (!priceId) return null;
+    const plan = PLAN_CONFIG[priceId];
+    if (!plan) {
+        console.warn('[account] Unknown price_id in app_subscriptions:', priceId, '→ falling back to 25 credits');
+        return { code: 'unknown', credits: 25 };
+    }
+    return plan;
+}
+
+
 /** small helper */
 async function ensureUserAndQuota(userId, email, defaultCap = 3) {
     try {
@@ -198,12 +226,19 @@ router.post('/consume', async (req, res) => {
         // Self-heal cap based on subscription status
         const { data: subRow } = await supabaseAdmin
             .from('app_subscriptions')
-            .select('status')
+            .select('status, price_id')
             .eq('user_id', userId)
             .in('status', ['active', 'trialing', 'past_due', 'unpaid'])
             .maybeSingle();
 
-        const desiredCap = subRow ? 25 : 3;
+        let desiredCap = 3; // default: free tier
+
+        if (subRow) {
+            const priceId = subRow.price_id || null;
+            const plan = getPlanForPriceId(priceId);
+            desiredCap = plan?.credits ?? 25; // e.g. 20/60/200/1000 or legacy 25
+        }
+
         let total = quota.total_credits || 0;
         let used = quota.used_credits || 0;
 
