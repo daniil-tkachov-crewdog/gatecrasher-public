@@ -222,15 +222,15 @@ router.post('/create-checkout-session', express.json(), async (req, res) => {
         }
 
         // 1) Re-use an OPEN Checkout Session if one exists (prevents duplicates)
-        const openSessions = await stripe.checkout.sessions.list({
-            customer: customerId,
-            status: 'open',
-            limit: 1,
-            expand: ['data.subscription'],
-        });
-        if (openSessions?.data?.[0]?.url) {
-            return res.json({ url: openSessions.data[0].url });
-        }
+        // const openSessions = await stripe.checkout.sessions.list({
+        //     customer: customerId,
+        //     status: 'open',
+        //     limit: 1,
+        //     expand: ['data.subscription'],
+        // });
+        // if (openSessions?.data?.[0]?.url) {
+        //     return res.json({ url: openSessions.data[0].url });
+        // }
 
         // console.log("🟢 Final chosen price:", {
         //     receivedPlan: plan,
