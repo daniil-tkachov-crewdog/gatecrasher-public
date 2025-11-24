@@ -62,8 +62,8 @@ router.get('/summary/:userId', async (req, res) => {
         // If you can attach email from your auth middleware, pass it; otherwise null
         const email = (req.user && req.user.email) || req.query.email || null;
 
-        // --- NEW: ensure app_users + app_quotas row exist for current period
-        await ensureUserAndQuota(userId, email, 3);
+        // ❌ REMOVED:
+        // await ensureUserAndQuota(userId, email, 3);
 
         // --- Admin check
         let isAdmin = false;
@@ -85,14 +85,26 @@ router.get('/summary/:userId', async (req, res) => {
         if (subErr) throw subErr;
         const sub = subs?.[0] || null;
 
-        // Quota (now guaranteed to exist after ensureUserAndQuota)
-        const { data: quota, error: quotaErr } = await supabaseAdmin
+        // Quota: first attempt
+        let { data: quota, error: quotaErr } = await supabaseAdmin
             .from('app_quotas')
             .select('*')
             .eq('user_id', userId)
             .maybeSingle();
 
         if (quotaErr) throw quotaErr;
+
+        // ✅ Only create / normalise quota if it doesn't exist yet
+        if (!quota) {
+            await ensureUserAndQuota(userId, email, 3);
+            const { data: quota2, error: quotaErr2 } = await supabaseAdmin
+                .from('app_quotas')
+                .select('*')
+                .eq('user_id', userId)
+                .maybeSingle();
+            if (quotaErr2) throw quotaErr2;
+            quota = quota2 || null;
+        }
 
         // Compute remaining credits (server truth)
         let remaining = quota ? Math.max(0, (quota.total_credits || 0) - (quota.used_credits || 0)) : 3;
@@ -155,6 +167,7 @@ router.get('/summary/:userId', async (req, res) => {
         res.status(500).json({ error: e.message || 'Failed to load summary' });
     }
 });
+
 
 /**
  * POST /api/account/consume
@@ -223,38 +236,54 @@ router.post('/consume', async (req, res) => {
             return res.json({ remaining });
         }
 
-        // Self-heal cap based on subscription status
-        const { data: subRow } = await supabaseAdmin
-            .from('app_subscriptions')
-            .select('status, price_id')
-            .eq('user_id', userId)
-            .in('status', ['active', 'trialing', 'past_due', 'unpaid'])
-            .maybeSingle();
-
-        let desiredCap = 3; // default: free tier
-
-        if (subRow) {
-            const priceId = subRow.price_id || null;
-            const plan = getPlanForPriceId(priceId);
-            desiredCap = plan?.credits ?? 25; // e.g. 20/60/200/1000 or legacy 25
-        }
+        // 🔹 NEW: only "self-heal" total_credits when the current period has ended.
+        // This ensures mid-cycle downgrades (e.g. platinum → retention) do NOT
+        // immediately chop their cap from 20 → 10. The user keeps the higher cap
+        // until quota.period_end, then next cycle uses the lower cap.
+        const nowIso = new Date().toISOString();
+        const periodEnd = quota.period_end || null;
+        const periodExpired = !periodEnd || periodEnd <= nowIso;
 
         let total = quota.total_credits || 0;
         let used = quota.used_credits || 0;
 
-        if (total !== desiredCap) {
-            const { data: fixed, error: fixErr } = await supabaseAdmin
-                .from('app_quotas')
-                .update({ total_credits: desiredCap, updated_at: new Date().toISOString() })
+        if (periodExpired) {
+            // Self-heal cap based on subscription status ONLY when period is over
+            const { data: subRow } = await supabaseAdmin
+                .from('app_subscriptions')
+                .select('status, price_id')
                 .eq('user_id', userId)
-                .select()
+                .in('status', ['active', 'trialing', 'past_due', 'unpaid'])
                 .maybeSingle();
-            if (!fixErr && fixed) {
-                total = fixed.total_credits || desiredCap;
-                used = fixed.used_credits || used;
-            } else {
-                total = desiredCap; // fallback
+
+            let desiredCap = 3; // default: free tier
+
+            if (subRow) {
+                const priceId = subRow.price_id || null;
+                const plan = getPlanForPriceId(priceId);
+                desiredCap = plan?.credits ?? 25; // e.g. 20/60/200/1000 or legacy 25
             }
+
+            if (total !== desiredCap) {
+                const { data: fixed, error: fixErr } = await supabaseAdmin
+                    .from('app_quotas')
+                    .update({ total_credits: desiredCap, updated_at: new Date().toISOString() })
+                    .eq('user_id', userId)
+                    .select()
+                    .maybeSingle();
+                if (!fixErr && fixed) {
+                    total = fixed.total_credits || desiredCap;
+                    used = fixed.used_credits || used;
+                } else {
+                    total = desiredCap; // fallback
+                }
+            } else {
+                total = desiredCap;
+            }
+        } else {
+            // Period still active → keep existing total_credits as-is
+            total = quota.total_credits || 0;
+            used = quota.used_credits || 0;
         }
 
         if (used >= total) {

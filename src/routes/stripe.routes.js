@@ -1,4 +1,4 @@
-// server/routes/stripe.routes.js
+// server/routes/stripe.routes.js - Handles Stripe checkout sessions, billing portal, webhooks, and subscription management.
 const express = require('express');
 const router = express.Router();
 const { z } = require('zod');
@@ -579,17 +579,26 @@ router.post('/downgrade', express.json(), async (req, res) => {
             return res.status(404).json({ error: 'No active subscription' });
         }
 
-        // Retrieve subscription to get item id
+        // Retrieve subscription to get item id + current price
         const sub = await getSubscriptionSafe(subRow.stripe_subscription_id);
         if (!sub) {
             return res.status(400).json({ error: 'Subscription not found (stale test id in live?)' });
         }
+
         const subItem = sub.items?.data?.[0];
         if (!subItem?.id) throw new Error('Subscription item not found');
 
+        // 🔹 NEW: Only allow downgrade if current plan is PLATINUM
+        const currentPriceId = subItem.price?.id || null;
+        const currentPlan = getPlanForPriceId(currentPriceId);
+        if (!currentPlan || currentPlan.code !== 'platinum') {
+            // Only platinum users can access the retention downgrade
+            return res.status(400).json({ error: 'Downgrade is only available for Platinum plan users.' });
+        }
+
         const updated = await stripe.subscriptions.update(sub.id, {
             items: [{ id: subItem.id, price: PRICE_RETENTION, quantity: 1 }],
-            proration_behavior: 'none',
+            proration_behavior: 'none', // don't bill/credit mid-cycle
         });
 
         // Refresh local state
@@ -604,6 +613,9 @@ router.post('/downgrade', express.json(), async (req, res) => {
             downgraded: true,
         });
 
+        // NOTE: we DO NOT reset credits here. They will be reset on the next
+        // invoice.payment_succeeded webhook based on the new retention price,
+        // which means: user keeps platinum credits until the end of current period.
         return res.json({ ok: true, status: updated.status, price_id: PRICE_RETENTION });
     } catch (e) {
         console.error('[stripe] /downgrade error', e);
