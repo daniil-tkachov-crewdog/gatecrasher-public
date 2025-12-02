@@ -1,188 +1,338 @@
-// src/routes/searches.routes.js
+/**
+ * Searches Routes - Job search history logging and retrieval
+ */
 const express = require("express");
 const router = express.Router();
 const { z } = require("zod");
 const { supabaseAdmin } = require("../lib/supabaseAdmin");
 
-// ---------- Validation ----------
 const HRContact = z.object({
-    name: z.string().min(1).trim(),
+    name: z.string().min(1, "Contact name is required").trim(),
     title: z.string().trim().optional().nullable(),
-    profileUrl: z.string().url().optional().nullable(),
+    profileUrl: z.string().url("Profile URL must be a valid URL").optional().nullable(),
 });
 
-// FIX: allow empty jdRaw for non-"paste" sources while keeping it required for "paste"
 const LogBody = z
     .object({
-        userId: z.string().uuid(),
-        sourceType: z.enum(["paste", "url", "linkedin"]).optional().default("paste"),
-        sourceUrl: z.string().url().optional().nullable(),
+        userId: z.string().uuid("User ID must be a valid UUID"),
+        sourceType: z.enum(["paste", "url", "linkedin"], {
+            errorMap: () => ({ message: "Source type must be 'paste', 'url', or 'linkedin'" })
+        }).optional().default("paste"),
+        sourceUrl: z.string().url("Source URL must be a valid URL").optional().nullable(),
         includeLeads: z.boolean().optional().default(false),
-
-        // was: z.string().min(1).max(100_000)
-        // now optional with default "", upper bound kept
-        jdRaw: z.string().max(100_000).optional().default(""),
-
+        jdRaw: z.string().max(100_000, "Job description exceeds maximum length of 100,000 characters").optional().default(""),
         jobTitle: z.string().trim().optional().nullable(),
         companyName: z.string().trim().optional().nullable(),
-        companyUrl: z.string().url().optional().nullable(),
+        companyUrl: z.string().url("Company URL must be a valid URL").optional().nullable(),
         location: z.string().trim().optional().nullable(),
         whyCompany: z.string().trim().optional().nullable(),
         hrContacts: z.array(HRContact).optional().default([]),
     })
     .superRefine((val, ctx) => {
-        // Enforce non-empty jdRaw only when sourceType is "paste"
         if (val.sourceType === "paste" && (!val.jdRaw || val.jdRaw.trim().length === 0)) {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
                 path: ["jdRaw"],
-                message: "jdRaw is required when sourceType is 'paste'",
+                message: "Job description text is required when source type is 'paste'",
             });
         }
     });
 
-/**
- * NOTE: Postgres often returns microsecond timestamps like
- * 2025-10-04T16:36:59.892235+00:00
- * which Zod's .datetime() rejects.  We trim microseconds before validation.
- */
 const ListQuery = z.object({
-    userId: z.string().uuid(),
-    limit: z.coerce.number().int().min(1).max(50).optional().default(20),
+    userId: z.string().uuid("User ID must be a valid UUID"),
+    limit: z.coerce.number().int().min(1, "Limit must be at least 1").max(50, "Limit cannot exceed 50").optional().default(20),
     cursor: z
         .preprocess(
             (val) => {
-                if (typeof val === "string") {
-                    // Trim microseconds to 3 digits so Zod accepts
-                    return val.replace(/(\.\d{3})\d+/, "$1");
+                if (typeof val === "string" && val.length > 0) {
+                    try {
+                        return val.replace(/(\.\d{3})\d+/, "$1");
+                    } catch (error) {
+                        return val;
+                    }
                 }
                 return val;
             },
-            z.string().datetime().optional()
+            z.string().datetime("Cursor must be a valid ISO 8601 datetime string").optional()
         ),
 });
 
-// ---------- Helpers ----------
 function excerpt(s, max = 500) {
-    if (!s) return "";
-    return s.length <= max ? s : s.slice(0, max);
+    try {
+        if (!s) return "";
+        if (typeof s !== 'string') {
+            s = String(s);
+        }
+        if (typeof max !== 'number' || max < 0) {
+            max = 500;
+        }
+        return s.length <= max ? s : s.slice(0, max);
+    } catch (error) {
+        console.error('[excerpt] Error:', error?.message);
+        return "";
+    }
 }
 
-// ---------- Routes ----------
-
-// POST /api/searches/log
+/**
+ * POST /api/searches/log
+ * Log a new job search with metadata
+ */
 router.post("/log", async (req, res) => {
+    const requestId = `log-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+
     try {
-        const input = LogBody.parse(req.body);
-
-        const { data, error } = await supabaseAdmin
-            .from("app_searches")
-            .insert({
-                user_id: input.userId,
-
-                source_type: input.sourceType,
-                source_url: input.sourceUrl ?? null,
-                include_leads: !!input.includeLeads,
-
-                jd_raw: input.jdRaw, // remains same; now safely defaults to ""
-                jd_excerpt: excerpt(input.jdRaw, 500),
-
-                job_title: input.jobTitle ?? null,
-                company_name: input.companyName ?? null,
-                company_url: input.companyUrl ?? null,
-                location: input.location ?? null,
-                why_company: input.whyCompany ?? null,
-                hr_contacts: input.hrContacts ?? [],
-
-                status: "succeeded",
-            })
-            .select("id")
-            .single();
-
-        if (error) {
-            console.error("[searches.log] insert error:", error);
-            return res.status(202).json({ ok: false, error: "insert_failed" });
+        if (!req.body || typeof req.body !== 'object') {
+            return res.status(400).json({
+                ok: false,
+                error: 'invalid_request_body',
+                requestId
+            });
         }
 
-        return res.json({ ok: true, id: data.id });
+        let input;
+        try {
+            input = LogBody.parse(req.body);
+        } catch (zodError) {
+            return res.status(400).json({
+                ok: false,
+                error: 'validation_failed',
+                message: 'Input validation failed',
+                details: zodError.errors?.map(e => ({
+                    field: e.path.join('.'),
+                    message: e.message
+                })) || [],
+                requestId
+            });
+        }
+
+        const insertData = {
+            user_id: input.userId,
+            source_type: input.sourceType,
+            source_url: input.sourceUrl ?? null,
+            include_leads: !!input.includeLeads,
+            jd_raw: input.jdRaw || "",
+            jd_excerpt: excerpt(input.jdRaw, 500),
+            job_title: input.jobTitle ?? null,
+            company_name: input.companyName ?? null,
+            company_url: input.companyUrl ?? null,
+            location: input.location ?? null,
+            why_company: input.whyCompany ?? null,
+            hr_contacts: input.hrContacts ?? [],
+            status: "succeeded",
+        };
+
+        let data, error;
+        try {
+            const result = await supabaseAdmin
+                .from("app_searches")
+                .insert(insertData)
+                .select("id")
+                .single();
+
+            data = result.data;
+            error = result.error;
+        } catch (dbException) {
+            console.error('[searches.log] Database exception:', dbException?.message);
+            return res.status(500).json({
+                ok: false,
+                error: 'database_error',
+                requestId
+            });
+        }
+
+        if (error) {
+            console.error('[searches.log] Insert error:', error.code, error.message);
+
+            const statusCode = error.code === '23505' ? 409 :
+                error.code === '23503' ? 400 : 500;
+
+            return res.status(statusCode).json({
+                ok: false,
+                error: 'insert_failed',
+                requestId
+            });
+        }
+
+        if (!data || !data.id) {
+            console.error('[searches.log] Insert returned no data');
+            return res.status(500).json({
+                ok: false,
+                error: 'insert_failed',
+                requestId
+            });
+        }
+
+        return res.json({
+            ok: true,
+            id: data.id,
+            requestId
+        });
+
     } catch (e) {
-        console.error("[searches.log] validation error:", e);
-        return res.status(400).json({ ok: false, error: "bad_request" });
+        console.error('[searches.log] Error:', e?.message);
+
+        return res.status(500).json({
+            ok: false,
+            error: 'internal_error',
+            message: e?.message || 'An unexpected error occurred',
+            requestId,
+            timestamp: new Date().toISOString()
+        });
     }
 });
 
-// GET /api/searches?userId=...&limit=20&cursor=ISO
+/**
+ * GET /api/searches
+ * Retrieve paginated list of user's search history
+ */
 router.get("/", async (req, res) => {
+    const requestId = `list-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+
     try {
+        if (!req.query || typeof req.query !== 'object') {
+            return res.status(400).json({
+                ok: false,
+                error: 'invalid_query',
+                requestId
+            });
+        }
+
         const parsed = ListQuery.safeParse(req.query);
 
         if (!parsed.success) {
-            console.warn("[searches.list] invalid query:", parsed.error.format());
-            return res.status(400).json({ ok: false, error: "bad_request" });
+            return res.status(400).json({
+                ok: false,
+                error: 'validation_failed',
+                details: parsed.error.errors?.map(e => ({
+                    field: e.path.join('.'),
+                    message: e.message
+                })) || [],
+                requestId
+            });
         }
 
         const { userId, limit, cursor } = parsed.data;
-        console.log("[searches.list] query:", { userId, limit, cursor });
 
-        let q = supabaseAdmin
+        let query = supabaseAdmin
             .from("app_searches")
-            .select(
-                `
-        id,
-        created_at,
-        job_title,
-        company_name,
-        company_url,
-        location,
-        why_company,
-        hr_contacts,
-        jd_excerpt,
-        source_type,
-        source_url
-      `
-            )
+            .select(`
+                id,
+                created_at,
+                job_title,
+                company_name,
+                company_url,
+                location,
+                why_company,
+                hr_contacts,
+                jd_excerpt,
+                source_type,
+                source_url
+            `)
             .eq("user_id", userId)
             .order("created_at", { ascending: false })
             .limit(limit);
 
-        if (cursor) q = q.lt("created_at", cursor);
-
-        const { data, error } = await q;
-        if (error) {
-            console.error("[searches.list] select error:", error);
-            return res.status(500).json({ ok: false, error: "db_error" });
+        if (cursor) {
+            query = query.lt("created_at", cursor);
         }
 
-        // Normalize created_at to valid ISO strings (millisecond precision)
-        const items = (data || []).map((r) => {
-            const createdIso = r.created_at
-                ? new Date(r.created_at).toISOString()
-                : null;
-            return {
-                id: r.id,
-                createdAt: createdIso,
-                jobTitle: r.job_title,
-                companyName: r.company_name,
-                companyUrl: r.company_url,
-                location: r.location,
-                whyCompany: r.why_company,
-                hrContacts: r.hr_contacts || [],
-                jdExcerpt: r.jd_excerpt,
-                sourceType: r.source_type,
-                sourceUrl: r.source_url,
-            };
+        let data, error;
+        try {
+            const result = await query;
+            data = result.data;
+            error = result.error;
+        } catch (dbException) {
+            console.error('[searches.list] Database exception:', dbException?.message);
+            return res.status(500).json({
+                ok: false,
+                error: 'database_error',
+                requestId
+            });
+        }
+
+        if (error) {
+            console.error('[searches.list] Select error:', error.code, error.message);
+            return res.status(500).json({
+                ok: false,
+                error: 'db_error',
+                requestId
+            });
+        }
+
+        if (!Array.isArray(data)) {
+            console.error('[searches.list] Invalid data format returned');
+            return res.status(500).json({
+                ok: false,
+                error: 'invalid_response',
+                requestId
+            });
+        }
+
+        let items;
+        try {
+            items = data.map((record) => {
+                let createdIso = null;
+                if (record.created_at) {
+                    try {
+                        createdIso = new Date(record.created_at).toISOString();
+                    } catch (dateError) {
+                        createdIso = null;
+                    }
+                }
+
+                return {
+                    id: record.id,
+                    createdAt: createdIso,
+                    jobTitle: record.job_title || null,
+                    companyName: record.company_name || null,
+                    companyUrl: record.company_url || null,
+                    location: record.location || null,
+                    whyCompany: record.why_company || null,
+                    hrContacts: Array.isArray(record.hr_contacts) ? record.hr_contacts : [],
+                    jdExcerpt: record.jd_excerpt || "",
+                    sourceType: record.source_type || "paste",
+                    sourceUrl: record.source_url || null,
+                };
+            });
+        } catch (mappingError) {
+            console.error('[searches.list] Mapping error:', mappingError?.message);
+            return res.status(500).json({
+                ok: false,
+                error: 'data_transformation_error',
+                requestId
+            });
+        }
+
+        let nextCursor = null;
+        if (items.length > 0) {
+            const lastItem = items[items.length - 1];
+            if (lastItem && lastItem.createdAt) {
+                nextCursor = lastItem.createdAt;
+            }
+        }
+
+        return res.json({
+            ok: true,
+            items,
+            nextCursor,
+            meta: {
+                count: items.length,
+                limit,
+                hasMore: items.length === limit,
+                requestId
+            }
         });
 
-        // Compute nextCursor using normalized ISO date
-        const nextCursor =
-            items.length && items[items.length - 1].createdAt
-                ? items[items.length - 1].createdAt
-                : null;
-
-        return res.json({ ok: true, items, nextCursor });
     } catch (e) {
-        console.error("[searches.list] runtime error:", e);
-        return res.status(400).json({ ok: false, error: "bad_request" });
+        console.error('[searches.list] Error:', e?.message);
+
+        return res.status(500).json({
+            ok: false,
+            error: 'internal_error',
+            message: e?.message || 'An unexpected error occurred',
+            requestId,
+            timestamp: new Date().toISOString()
+        });
     }
 });
 

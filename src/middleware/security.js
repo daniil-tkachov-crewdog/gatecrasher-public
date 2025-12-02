@@ -1,23 +1,54 @@
-// middleware/security.js
+/**
+ * Security Middleware - CORS, Helmet, XSS, Rate Limiting
+ */
 const helmet = require('helmet');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const xss = require('xss-clean');
 
+function extractHost(url, context) {
+    if (!url || typeof url !== 'string') {
+        return '';
+    }
+
+    try {
+        const parsedUrl = new URL(url);
+        return parsedUrl.host;
+    } catch (error) {
+        console.error(`[security] ${context}: Invalid URL:`, error.message);
+        return '';
+    }
+}
+
+function extractOrigin(url, fallback, context) {
+    if (!url || typeof url !== 'string') {
+        return fallback;
+    }
+
+    try {
+        const parsedUrl = new URL(url);
+        return parsedUrl.origin;
+    } catch (error) {
+        console.error(`[security] ${context}: Invalid URL, using fallback`);
+        return fallback;
+    }
+}
+
 function buildCsp() {
     const isProd = process.env.NODE_ENV === 'production';
 
     const SUPABASE_URL = process.env.SUPABASE_URL || '';
-    let supabaseHost = '';
-    try { supabaseHost = new URL(SUPABASE_URL).host; } catch (_) { }
+    if (!SUPABASE_URL) {
+        console.error('[security] SUPABASE_URL not set');
+    }
+    const supabaseHost = extractHost(SUPABASE_URL, 'Supabase URL');
 
     const N8N_ENDPOINT =
         process.env.N8N_ENDPOINT ||
         process.env.N8N_ENDPOINT_URL ||
         'https://crewdog.app.n8n.cloud';
 
-    let n8nOrigin = 'https://crewdog.app.n8n.cloud';
-    try { n8nOrigin = new URL(N8N_ENDPOINT).origin; } catch (_) { }
+    const n8nOrigin = extractOrigin(N8N_ENDPOINT, 'https://crewdog.app.n8n.cloud', 'N8N endpoint');
 
     const directives = {
         "default-src": ["'self'"],
@@ -86,61 +117,155 @@ function buildCsp() {
     return { useDefaults: true, directives, reportOnly: false };
 }
 
-function applySecurity(app) {
-    app.disable('x-powered-by');
-
-    // Allowed origins
-    const RAW_CORS = process.env.CORS_ORIGINS || [
+function parseCorsOrigins() {
+    const defaultOrigins = [
         'https://www.crewdog.app',
         'https://crewdog.app',
-        'https://crewdog-frontend.onrender.com', // temporary during transition
+        'https://crewdog-frontend.onrender.com',
         'http://localhost:5173',
         'http://localhost:8080'
-    ].join(',');
+    ];
 
-    const allowedOrigins = RAW_CORS.split(',').map(s => s.trim()).filter(Boolean);
+    const RAW_CORS = process.env.CORS_ORIGINS;
 
-    app.use(cors({
-        origin(origin, cb) {
-            // allow no-origin (curl, Postman, health checks)
-            if (!origin) return cb(null, true);
-            if (allowedOrigins.includes(origin)) return cb(null, true);
-            return cb(new Error(`CORS blocked: ${origin}`));
-        },
-        credentials: true,
-        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-        allowedHeaders: [
-            'Content-Type',
-            'Authorization',
-            'X-Requested-With',
-            'X-Tenant-Id',
-            'X-Admin-Key'
-        ],
-        maxAge: 600
-    }));
+    if (!RAW_CORS) {
+        return defaultOrigins;
+    }
 
-    // Preflight support
-    app.options('*', cors());
+    const allowedOrigins = RAW_CORS
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
 
-    app.use(helmet({
-        contentSecurityPolicy: buildCsp(),
-        referrerPolicy: { policy: 'no-referrer' },
-        crossOriginResourcePolicy: { policy: 'same-site' },
-        crossOriginEmbedderPolicy: false
-    }));
+    if (allowedOrigins.length === 0) {
+        console.error('[security] CORS_ORIGINS empty, using defaults');
+        return defaultOrigins;
+    }
 
-    // Skip XSS clean for Stripe webhook
-    app.use((req, res, next) => {
-        if (req.originalUrl === '/api/stripe/webhook') return next();
-        return xss()(req, res, next);
-    });
+    const validOrigins = [];
+    const isProd = process.env.NODE_ENV === 'production';
 
-    app.use(rateLimit({
-        windowMs: 15 * 60 * 1000,
-        max: 300,
-        standardHeaders: true,
-        legacyHeaders: false
-    }));
+    for (const origin of allowedOrigins) {
+        if (isProd && origin.includes('localhost')) {
+            console.error('[security] Localhost origin in production:', origin);
+        }
+
+        try {
+            new URL(origin);
+            validOrigins.push(origin);
+        } catch (error) {
+            console.error(`[security] Invalid CORS origin '${origin}':`, error.message);
+        }
+    }
+
+    if (validOrigins.length === 0) {
+        console.error('[security] No valid CORS origins, using defaults');
+        return defaultOrigins;
+    }
+
+    return validOrigins;
 }
 
-module.exports = { applySecurity };
+/**
+ * Applies security middleware to Express app
+ */
+function applySecurity(app) {
+    if (!app || typeof app.use !== 'function') {
+        throw new Error('applySecurity requires a valid Express app instance');
+    }
+
+    try {
+        app.disable('x-powered-by');
+
+        const allowedOrigins = parseCorsOrigins();
+
+        try {
+            app.use(cors({
+                origin(origin, cb) {
+                    if (!origin) return cb(null, true);
+
+                    if (allowedOrigins.includes(origin)) {
+                        return cb(null, true);
+                    }
+
+                    console.error('[security] CORS blocked:', origin);
+                    return cb(new Error(`CORS policy blocked origin: ${origin}`));
+                },
+                credentials: true,
+                methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+                allowedHeaders: [
+                    'Content-Type',
+                    'Authorization',
+                    'X-Requested-With',
+                    'X-Tenant-Id',
+                    'X-Admin-Key'
+                ],
+                maxAge: 600
+            }));
+
+            app.options('*', cors());
+
+        } catch (error) {
+            throw new Error(`Failed to configure CORS: ${error.message}`);
+        }
+
+        try {
+            const cspConfig = buildCsp();
+            app.use(helmet({
+                contentSecurityPolicy: cspConfig,
+                referrerPolicy: { policy: 'no-referrer' },
+                crossOriginResourcePolicy: { policy: 'same-site' },
+                crossOriginEmbedderPolicy: false
+            }));
+
+        } catch (error) {
+            throw new Error(`Failed to configure Helmet: ${error.message}`);
+        }
+
+        try {
+            app.use((req, res, next) => {
+                if (req.originalUrl === '/api/stripe/webhook' || req.originalUrl === '/api/stripe/webhook-test') {
+                    return next();
+                }
+                return xss()(req, res, next);
+            });
+
+        } catch (error) {
+            throw new Error(`Failed to configure XSS protection: ${error.message}`);
+        }
+
+        try {
+            const windowMinutes = 15;
+            const maxRequests = parseInt(process.env.RATE_LIMIT_MAX) || 300;
+
+            if (maxRequests < 1) {
+                throw new Error(`Invalid RATE_LIMIT_MAX value: ${process.env.RATE_LIMIT_MAX}`);
+            }
+
+            app.use(rateLimit({
+                windowMs: windowMinutes * 60 * 1000,
+                max: maxRequests,
+                standardHeaders: true,
+                legacyHeaders: false,
+                message: 'Too many requests from this IP, please try again later.',
+                handler: (req, res) => {
+                    console.error('[security] Rate limit exceeded:', req.ip);
+                    res.status(429).json({
+                        error: 'Too many requests',
+                        message: 'You have exceeded the rate limit. Please try again later.',
+                        retryAfter: Math.ceil(req.rateLimit.resetTime / 1000)
+                    });
+                }
+            }));
+
+        } catch (error) {
+            throw new Error(`Failed to configure rate limiting: ${error.message}`);
+        }
+
+    } catch (error) {
+        console.error('[security] Critical error:', error.message);
+        throw error;
+    }
+}
+
+module.exports = { applySecurity, parseCorsOrigins, extractHost, extractOrigin };
