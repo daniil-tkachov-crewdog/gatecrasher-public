@@ -8,6 +8,7 @@ export function initRunForm({
     jdId = "JD",
     jdLinkId = "JD_link",          // field for job description link
     leadsCheckboxId = "JH_tickbox",
+    outreachMessageCheckboxId = "outreach_message",
     submitId = "submitBtn",
 } = {}) {
     const form = document.getElementById(formId);
@@ -15,6 +16,7 @@ export function initRunForm({
     const jd = document.getElementById(jdId);
     const jdLink = document.getElementById(jdLinkId);
     const jhBox = document.getElementById(leadsCheckboxId);
+    const outreachBox = document.getElementById(outreachMessageCheckboxId);
     const btn = document.getElementById(submitId);
 
     if (!form || !result) return;
@@ -24,6 +26,7 @@ export function initRunForm({
     form.dataset.init = "1";
 
     let lastWantsLeads = false;
+    let lastWantsOutreachMessage = false;
 
     /* ---------------- Helpers: loader + overlay ---------------- */
     const toggleOverlay = (on) => {
@@ -72,6 +75,10 @@ export function initRunForm({
             lastWantsLeads = !!(jhBox && jhBox.checked);
             fd.set("JH_tickbox", lastWantsLeads ? "yes" : "no");
 
+            // Normalize outreach message checkbox
+            lastWantsOutreachMessage = !!(outreachBox && outreachBox.checked);
+            fd.set("outreach_message", lastWantsOutreachMessage ? "yes" : "no");
+
             // GA4 (via GTM)
             window.dataLayer = window.dataLayer || [];
             window.dataLayer.push({ event: "run_search", with_leads: lastWantsLeads });
@@ -94,6 +101,7 @@ export function initRunForm({
                 JD,
                 JD_link,
                 JH_tickbox: lastWantsLeads ? "yes" : "no",
+                outreach_message: lastWantsOutreachMessage ? "yes" : "no",
                 "Save to the doc file and the spreadsheet? (+10 sec)": "No",
             };
 

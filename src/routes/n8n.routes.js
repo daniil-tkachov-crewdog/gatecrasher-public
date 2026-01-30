@@ -382,6 +382,7 @@ router.post('/gatecrasher', async (req, res) => {
             JD_link,
             ['Save to the doc file and the spreadsheet? (+10 sec)']: saveFlag,
             ['Region to search (Candidates)']: region,
+            outreach_message,
         } = req.body;
 
         if (!JD && !JD_link) {
@@ -409,6 +410,10 @@ router.post('/gatecrasher', async (req, res) => {
 
         if (JD_link) {
             payload.JD_link = typeof JD_link === 'string' ? JD_link.trim() : String(JD_link).trim();
+        }
+
+        if (outreach_message !== undefined) {
+            payload.outreach_message = typeof outreach_message === 'string' ? outreach_message : (outreach_message ? 'yes' : 'no');
         }
 
         const ctrl = new AbortController();
