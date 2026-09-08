@@ -107,6 +107,19 @@ async function getOrCreateCustomerByEmail(email, userId) {
     return created.id;
 }
 
+// Returns true only if the customer id exists in the CURRENT Stripe mode.
+// Guards against a stored test-mode customer id being used with a live key
+// (or vice versa), which otherwise throws "No such customer" at checkout.
+async function customerExists(customerId) {
+    if (!customerId) return false;
+    try {
+        const c = await stripe.customers.retrieve(customerId);
+        return !!c && !c.deleted;
+    } catch {
+        return false;
+    }
+}
+
 async function findUserIdByCustomerId(customerId) {
     if (!customerId) return null;
 
@@ -259,7 +272,13 @@ router.post('/create-checkout-session', express.json(), async (req, res) => {
             throw selErr;
         }
 
-        let customerId = existing?.stripe_customer_id;
+        let customerId = existing?.stripe_customer_id || null;
+
+        // Drop a stored id that doesn't exist in the current Stripe mode.
+        if (customerId && !(await customerExists(customerId))) {
+            console.warn('[create-checkout-session] Stored customer not found in current mode, recreating:', customerId);
+            customerId = null;
+        }
 
         if (!customerId) {
             customerId = await getOrCreateCustomerByEmail(email, userId);
@@ -338,7 +357,13 @@ router.post('/portal', express.json(), async (req, res) => {
             throw selErr;
         }
 
-        let customerId = existing?.stripe_customer_id;
+        let customerId = existing?.stripe_customer_id || null;
+
+        // Drop a stored id that doesn't exist in the current Stripe mode.
+        if (customerId && !(await customerExists(customerId))) {
+            console.warn('[portal] Stored customer not found in current mode, recreating:', customerId);
+            customerId = null;
+        }
 
         if (!customerId) {
             customerId = await getOrCreateCustomerByEmail(email, userId);
