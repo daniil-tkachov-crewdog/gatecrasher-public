@@ -6,7 +6,12 @@ const router = express.Router();
 const { supabaseAdmin } = require('../lib/supabaseAdmin');
 const { stripe } = require('../lib/stripe');
 
+// Single current paid plan: "Pro" — £19.50/month, unlimited searches.
+const PRICE_PRO = process.env.STRIPE_PRICE_PRO || 'price_1UDMtZRs3BC91kOaP20g9Gld';
+const PRO_CREDITS = 1000000; // effectively unlimited
+
 const PLAN_CONFIG = {
+    [PRICE_PRO]: { code: 'pro', credits: PRO_CREDITS },
     [process.env.STRIPE_PRICE_PLATINUM]: { code: 'platinum', credits: 20 },
     [process.env.STRIPE_PRICE_SILVER]: { code: 'silver', credits: 60 },
     [process.env.STRIPE_PRICE_GOLD]: { code: 'gold', credits: 200 },

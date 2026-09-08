@@ -21,8 +21,16 @@ const PRICE_GOLD = must('STRIPE_PRICE_GOLD');
 const PRICE_BUSINESS = must('STRIPE_PRICE_BUSINESS');
 const PRICE_RETENTION = must('STRIPE_PRICE_RETENTION');
 
+// Single current paid plan: "Pro" — £19.50/month, unlimited searches.
+// Override via STRIPE_PRICE_PRO if the price ever changes.
+const PRICE_PRO = process.env.STRIPE_PRICE_PRO || 'price_1UDMtZRs3BC91kOaP20g9Gld';
+// Effectively unlimited monthly credits for the Pro plan.
+const PRO_CREDITS = 1000000;
+
 const PLAN_TO_PRICE = {
-    platinum: PRICE_PLATINUM,
+    // The frontend sends "platinum" for the single paid plan; route it to Pro.
+    platinum: PRICE_PRO,
+    pro: PRICE_PRO,
     silver: PRICE_SILVER,
     gold: PRICE_GOLD,
     business: PRICE_BUSINESS,
@@ -35,6 +43,7 @@ const APP_BASE_URL = must('APP_BASE_URL');
 const ADMIN_API_KEY = must('ADMIN_API_KEY');
 
 const PLAN_CONFIG = {
+    [PRICE_PRO]: { code: 'pro', credits: PRO_CREDITS },
     [PRICE_PLATINUM]: { code: 'platinum', credits: 20 },
     [PRICE_SILVER]: { code: 'silver', credits: 60 },
     [PRICE_GOLD]: { code: 'gold', credits: 200 },
@@ -220,7 +229,7 @@ router.post('/create-checkout-session', express.json(), async (req, res) => {
         const Schema = z.object({
             userId: z.string().uuid('Invalid UUID'),
             email: z.string().email('Invalid email'),
-            plan: z.enum(['platinum', 'silver', 'gold', 'business']).optional(),
+            plan: z.enum(['pro', 'platinum', 'silver', 'gold', 'business']).optional(),
         });
 
         let userId, email, plan;
@@ -267,7 +276,7 @@ router.post('/create-checkout-session', express.json(), async (req, res) => {
             }
         }
 
-        const chosenPrice = PLAN_TO_PRICE[plan] || PRICE_PLATINUM;
+        const chosenPrice = PLAN_TO_PRICE[plan] || PRICE_PRO;
         const finalPlan = plan || 'platinum';
 
         const idempotencyKey = `co_${userId}_${chosenPrice}_${Date.now()}`;
